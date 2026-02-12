@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screw Label Maker — James's Workshop</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c10; --surface: #12151c; --surface2: #181c26; --surface3: #1e2330;
+  --border: #262d3f; --border-hover: #3a4460;
+  --text: #e8ecf6; --text-dim: #8892ab; --text-muted: #555e75;
+  --accent: #4d8bff; --accent-dim: rgba(77,139,255,0.12); --accent-border: rgba(77,139,255,0.25);
+  --green: #34d399; --green-dim: rgba(52,211,153,0.12);
+  --red: #f87171; --orange: #fb923c; --yellow: #fbbf24;
+  --m2: #FF4444; --m25: #FF8C00; --m3: #FFD700; --m4: #22BB22; --m5: #3399FF; --m6: #9933FF;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* LAYOUT */
+.app { display:grid; grid-template-columns:320px 1fr; min-height:100vh; }
+.sidebar { background:var(--surface); border-right:1px solid var(--border); padding:1.2rem;
+  overflow-y:auto; max-height:100vh; position:sticky; top:0; }
+.main { padding:1.5rem; overflow-y:auto; }
+
+/* SIDEBAR */
+.logo { display:flex; align-items:center; gap:0.5rem; margin-bottom:1.2rem; padding-bottom:1rem;
+  border-bottom:1px solid var(--border); }
+.logo h1 { font-size:1.1rem; font-weight:800; letter-spacing:-0.03em; }
+.logo h1 span { color:var(--accent); }
+.logo-icon { font-size:1.4rem; }
+
+.filter-group { margin-bottom:1rem; }
+.filter-group label { display:block; font-size:0.68rem; text-transform:uppercase;
+  letter-spacing:0.08em; color:var(--text-muted); font-weight:600; margin-bottom:0.4rem; }
+
+.chip-group { display:flex; flex-wrap:wrap; gap:0.3rem; }
+.chip { padding:0.3rem 0.6rem; border-radius:6px; font-size:0.75rem; font-weight:500;
+  background:var(--surface2); border:1px solid var(--border); cursor:pointer; transition:all 0.15s;
+  user-select:none; font-family:'JetBrains Mono',monospace; }
+.chip:hover { border-color:var(--border-hover); background:var(--surface3); }
+.chip.active { background:var(--accent-dim); border-color:var(--accent-border); color:var(--accent); }
+.chip.size-chip.active { font-weight:700; }
+
+.length-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:0.25rem; }
+.length-chip { text-align:center; padding:0.25rem 0.2rem; font-size:0.72rem; }
+
+/* ACTIONS */
+.actions { display:flex; flex-direction:column; gap:0.4rem; margin-top:1rem;
+  padding-top:1rem; border-top:1px solid var(--border); }
+.btn { padding:0.6rem 1rem; border:none; border-radius:var(--radius); font-family:inherit;
+  font-size:0.8rem; font-weight:600; cursor:pointer; transition:all 0.15s; text-align:center; }
+.btn-primary { background:var(--accent); color:white; }
+.btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
+.btn-primary:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+.btn-secondary { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border); }
+.btn-secondary:hover { border-color:var(--border-hover); color:var(--text); }
+.btn-danger { background:rgba(248,113,113,0.1); color:var(--red); border:1px solid rgba(248,113,113,0.2); }
+.btn-sm { padding:0.35rem 0.6rem; font-size:0.72rem; }
+
+.select-count { text-align:center; padding:0.5rem; background:var(--surface2);
+  border-radius:var(--radius); font-family:'JetBrains Mono',monospace;
+  font-size:0.8rem; color:var(--text-dim); margin-bottom:0.4rem; }
+.select-count strong { color:var(--accent); font-size:1.1rem; }
+
+/* MAIN AREA */
+.toolbar { display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem; }
+.toolbar h2 { font-size:1rem; font-weight:700; }
+.toolbar-actions { display:flex; gap:0.4rem; align-items:center; }
+.search-box { padding:0.4rem 0.7rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); color:var(--text); font-family:inherit; font-size:0.78rem;
+  width:200px; outline:none; }
+.search-box:focus { border-color:var(--accent-border); }
+
+/* LABEL GRID */
+.label-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+  gap:0.5rem; margin-bottom:1.5rem; }
+.label-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:0.6rem; cursor:pointer; transition:all 0.15s; position:relative; }
+.label-card:hover { border-color:var(--border-hover); transform:translateY(-1px); }
+.label-card.selected { border-color:var(--accent-border); background:var(--accent-dim); }
+.label-card.selected::after { content:'✓'; position:absolute; top:0.4rem; right:0.5rem;
+  color:var(--accent); font-weight:700; font-size:0.9rem; }
+.label-card canvas { width:100%; height:auto; border-radius:4px; background:white; }
+.label-card .label-info { display:flex; justify-content:space-between; align-items:center;
+  margin-top:0.3rem; font-size:0.65rem; color:var(--text-muted);
+  font-family:'JetBrains Mono',monospace; }
+
+/* PRINT PREVIEW MODAL */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  z-index:100; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  max-width:90vw; max-height:90vh; overflow:auto; padding:1.5rem; }
+.modal h2 { font-size:1.1rem; font-weight:700; margin-bottom:1rem; }
+.modal .sheet-preview { background:white; margin:0.5rem 0; }
+.modal .modal-actions { display:flex; gap:0.5rem; margin-top:1rem; justify-content:flex-end; }
+
+/* EMPTY STATE */
+.empty-state { text-align:center; padding:4rem 2rem; color:var(--text-muted); }
+.empty-state .empty-icon { font-size:3rem; margin-bottom:0.8rem; opacity:0.4; }
+.empty-state p { font-size:0.85rem; line-height:1.6; }
+
+/* Quick add row */
+.quick-add { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:0.8rem 1rem; margin-bottom:1rem; }
+.quick-add h3 { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-muted); font-weight:600; margin-bottom:0.5rem; }
+.quick-add-row { display:flex; gap:0.3rem; flex-wrap:wrap; align-items:center; }
+.quick-select { padding:0.3rem 0.5rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-family:inherit; font-size:0.75rem; outline:none; }
+.quick-select:focus { border-color:var(--accent-border); }
+.qty-input { width:50px; padding:0.3rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-family:'JetBrains Mono',monospace;
+  font-size:0.75rem; text-align:center; outline:none; }
+
+@media (max-width:900px) {
+  .app { grid-template-columns:1fr; }
+  .sidebar { max-height:none; position:relative; border-right:none; border-bottom:1px solid var(--border); }
+}
+@media print {
+  .sidebar, .toolbar, .quick-add, .modal-actions, .no-print { display:none !important; }
+  .app { display:block; }
+  .main { padding:0; }
+  .label-grid { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ SIDEBAR ═══ -->
+<div class="sidebar">
+  <div class="logo">
+    <span class="logo-icon">⚙️</span>
+    <h1>Screw <span>Label Maker</span></h1>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-group">
+    <label>Category</label>
+    <div class="chip-group" id="catFilter">
+      <div class="chip active" data-val="screw" onclick="toggleFilter('cat','screw',this)">Screws</div>
+      <div class="chip active" data-val="nut" onclick="toggleFilter('cat','nut',this)">Nuts</div>
+      <div class="chip active" data-val="washer" onclick="toggleFilter('cat','washer',this)">Washers</div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Size</label>
+    <div class="chip-group" id="sizeFilter">
+      <div class="chip size-chip active" data-val="M2" onclick="toggleFilter('size','M2',this)" style="border-left:3px solid var(--m2)">M2</div>
+      <div class="chip size-chip active" data-val="M2.5" onclick="toggleFilter('size','M2.5',this)" style="border-left:3px solid var(--m25)">M2.5</div>
+      <div class="chip size-chip active" data-val="M3" onclick="toggleFilter('size','M3',this)" style="border-left:3px solid var(--m3)">M3</div>
+      <div class="chip size-chip active" data-val="M4" onclick="toggleFilter('size','M4',this)" style="border-left:3px solid var(--m4)">M4</div>
+      <div class="chip size-chip active" data-val="M5" onclick="toggleFilter('size','M5',this)" style="border-left:3px solid var(--m5)">M5</div>
+      <div class="chip size-chip active" data-val="M6" onclick="toggleFilter('size','M6',this)" style="border-left:3px solid var(--m6)">M6</div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Head Type</label>
+    <div class="chip-group" id="headFilter">
+      <div class="chip active" data-val="CAP" onclick="toggleFilter('head','CAP',this)">CAP</div>
+      <div class="chip active" data-val="BTN" onclick="toggleFilter('head','BTN',this)">BTN</div>
+      <div class="chip active" data-val="CSK" onclick="toggleFilter('head','CSK',this)">CSK</div>
+      <div class="chip active" data-val="RCSK" onclick="toggleFilter('head','RCSK',this)">RCSK</div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Drive</label>
+    <div class="chip-group" id="driveFilter">
+      <div class="chip active" data-val="PH" onclick="toggleFilter('drive','PH',this)">PH +</div>
+      <div class="chip active" data-val="HX" onclick="toggleFilter('drive','HX',this)">HX ⬡</div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Material</label>
+    <div class="chip-group" id="matFilter">
+      <div class="chip active" data-val="Black" onclick="toggleFilter('mat','Black',this)">Black</div>
+      <div class="chip active" data-val="Stainless" onclick="toggleFilter('mat','Stainless',this)">Stainless</div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Length (mm)</label>
+    <div class="chip-group length-grid" id="lenFilter"></div>
+  </div>
+
+  <!-- Selection info & actions -->
+  <div class="actions">
+    <div class="select-count">
+      <strong id="selectedCount">0</strong> labels selected
+    </div>
+    <button class="btn btn-primary" id="btnGenSheet" onclick="generateSheet()" disabled>
+      🖨️ Generate Print Sheet
+    </button>
+    <button class="btn btn-secondary" onclick="downloadSelected()">
+      💾 Download Selected PNGs
+    </button>
+    <div style="display:flex;gap:0.3rem;">
+      <button class="btn btn-secondary btn-sm" onclick="selectAllVisible()" style="flex:1">Select Visible</button>
+      <button class="btn btn-danger btn-sm" onclick="clearSelection()" style="flex:1">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+  <div class="toolbar">
+    <h2>Label Browser <span id="visibleCount" style="color:var(--text-muted);font-weight:400;font-size:0.8rem"></span></h2>
+    <div class="toolbar-actions">
+      <input type="text" class="search-box" placeholder="Search (e.g. M4 12 hex)..." oninput="applyFilters()" id="searchBox">
+    </div>
+  </div>
+
+  <!-- Quick Add -->
+  <div class="quick-add">
+    <h3>⚡ Quick Add Label</h3>
+    <div class="quick-add-row">
+      <select class="quick-select" id="qaSize"><option value="">Size</option></select>
+      <select class="quick-select" id="qaLength"><option value="">Length</option></select>
+      <select class="quick-select" id="qaHead"><option value="">Head</option></select>
+      <select class="quick-select" id="qaDrive"><option value="">Drive</option></select>
+      <select class="quick-select" id="qaMat"><option value="">Material</option></select>
+      <label style="font-size:0.72rem;color:var(--text-muted);display:flex;align-items:center;gap:0.3rem;">
+        Qty: <input type="number" class="qty-input" id="qaQty" value="1" min="1" max="20">
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="quickAdd()">+ Add</button>
+    </div>
+  </div>
+
+  <div class="label-grid" id="labelGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <div class="empty-icon">🔩</div>
+    <p>No labels match your filters.<br>Adjust the sidebar filters to see labels.</p>
+  </div>
+</div>
+</div>
+
+<!-- PRINT SHEET MODAL -->
+<div class="modal-overlay" id="printModal">
+  <div class="modal">
+    <h2>🖨️ Print Preview</h2>
+    <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.8rem;">
+      Labels are laid out on A4 pages at 40×16mm each. Print at 100% scale on sticker paper, then cut.
+    </p>
+    <div id="sheetContainer"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closePrintModal()">Close</button>
+      <button class="btn btn-primary" onclick="downloadSheetPDF()">💾 Download as Images</button>
+      <button class="btn btn-primary" onclick="printSheets()">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════════════════
+const SIZES = ['M2','M2.5','M3','M4','M5','M6'];
+const SIZE_BARS = {M2:1,'M2.5':2,M3:3,M4:4,M5:5,M6:6};
+const SIZE_LENGTHS = {
+  M2:[3,4,5,6,8,10,12,14,16,18,20],
+  'M2.5':[4,5,6,8,10,12,14,16,18,20,25],
+  M3:[4,5,6,8,10,12,14,16,18,20,25,30],
+  M4:[4,5,6,8,10,12,14,16,18,20,25,30,35,40,45,50],
+  M5:[6,8,10,12,14,16,18,20,25,30,35,40,45,50],
+  M6:[8,10,12,14,16,18,20,25,30,35,40,45,50,55,60]
+};
+const ALL_LENGTHS = [...new Set(Object.values(SIZE_LENGTHS).flat())].sort((a,b)=>a-b);
+const HEADS = {CAP:{full:'Cap Head'},BTN:{full:'Button Head'},CSK:{full:'Countersunk'},RCSK:{full:'Raised Countersunk'}};
+const DRIVES = {PH:'Phillips',HX:'Hex'};
+const MATS = ['Black','Stainless'];
+
+// Label dimensions at 300dpi
+const LW = 472, LH = 189;
+// A4 at 300dpi
+const PW = 2480, PH_PAGE = 3508;
+const MARGIN = 50, GAP_X = 10, GAP_Y = 6;
+const COLS = Math.floor((PW - 2*MARGIN + GAP_X)/(LW+GAP_X));
+const ROWS = Math.floor((PH_PAGE - 2*MARGIN + GAP_Y)/(LH+GAP_Y));
+const PER_PAGE = COLS * ROWS;
+
+// State
+let filters = { cat:new Set(['screw','nut','washer']), size:new Set(SIZES), head:new Set(Object.keys(HEADS)),
+  drive:new Set(['PH','HX']), mat:new Set(MATS), len:new Set(ALL_LENGTHS) };
+let selectedLabels = new Map(); // key -> {config, qty}
+let allLabels = []; // generated label configs
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CANVAS LABEL DRAWING (matches the Python output exactly)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function drawLabel(canvas, cfg) {
+  canvas.width = LW; canvas.height = LH;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, LW, LH);
+
+  // Horizontal bars at top
+  const barCount = SIZE_BARS[cfg.size];
+  const barW=18, barH=10, barGap=5;
+  ctx.fillStyle = 'black';
+  for (let i=0; i<barCount; i++) {
+    ctx.fillRect(6 + i*(barW+barGap), 3, barW, barH);
+  }
+
+  const ctop = 17;
+
+  // Text zone (left 40%)
+  const tzW = Math.floor(LW * 0.40);
+  const tx = 8;
+  ctx.fillStyle = 'black';
+
+  if (cfg.cat === 'screw') {
+    // Line 1: Size + Drive
+    ctx.font = 'bold 44px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.size, tx, ctop + 38);
+    const sw = ctx.measureText(cfg.size).width;
+    ctx.font = 'bold 26px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.drive, tx + sw + 4, ctop + 32);
+
+    // Line 2: Length
+    ctx.font = 'bold 26px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.length + 'mm', tx, ctop + 70);
+
+    // Line 3: Head abbr
+    ctx.font = 'bold 18px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.head, tx, ctop + 93);
+
+    // Line 4: Full head name
+    ctx.font = '14px "DejaVu Sans", sans-serif';
+    ctx.fillText(HEADS[cfg.head].full, tx, ctop + 111);
+
+    // Line 5: Material
+    ctx.font = 'bold 14px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.material, tx, ctop + 128);
+  } else {
+    // Hardware label
+    ctx.font = 'bold 48px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.size, tx, ctop + 42);
+
+    ctx.font = 'bold 24px "DejaVu Sans", sans-serif';
+    const hwAbbr = cfg.cat === 'nut' ? 'NUT' : 'WASH';
+    ctx.fillText(hwAbbr, tx, ctop + 72);
+
+    ctx.font = '15px "DejaVu Sans", sans-serif';
+    const hwFull = cfg.cat === 'nut' ? 'Hex Nut' : 'Washer';
+    ctx.fillText(hwFull, tx, ctop + 92);
+
+    ctx.font = 'bold 15px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.material, tx, ctop + 112);
+  }
+
+  // Divider
+  const divX = tzW - 4;
+  ctx.strokeStyle = 'black'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(divX, ctop+2); ctx.lineTo(divX, LH-6); ctx.stroke();
+
+  // Drawing zone
+  const dzStart = tzW;
+  const dzW = LW - dzStart - 4;
+  const tdZW = Math.floor(dzW * 0.44);
+  const sideZW = dzW - tdZW;
+  const contentH = LH - ctop - 4;
+  const tdCx = dzStart + tdZW/2;
+  const tdCy = ctop + contentH/2;
+  const tdR = Math.min(tdZW*0.42, contentH*0.42);
+
+  if (cfg.cat === 'screw') {
+    drawTopDown(ctx, tdCx, tdCy, tdR, cfg.head, cfg.drive);
+    drawSideProfile(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4, cfg.head);
+  } else if (cfg.cat === 'nut') {
+    drawNutTopDown(ctx, tdCx, tdCy, tdR);
+    drawNutSide(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4);
+  } else {
+    drawWasherTopDown(ctx, tdCx, tdCy, tdR);
+    drawWasherSide(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4);
+  }
+
+  // Border
+  ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, LW-2, LH-2);
+}
+
+// Top-down views
+function drawTopDown(ctx, cx, cy, r, head, drive) {
+  ctx.strokeStyle='black'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+
+  if (head==='CAP') {
+    ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.78,0,Math.PI*2); ctx.stroke();
+    drawDriveTopDown(ctx,cx,cy,r*0.42,drive);
+  } else if (head==='BTN') {
+    ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r*0.70,0,Math.PI*2); ctx.stroke();
+    drawDriveTopDown(ctx,cx,cy,r*0.32,drive);
+  } else if (head==='CSK') {
+    ctx.lineWidth=1;
+    for (const f of [0.70,0.45]) { ctx.beginPath(); ctx.arc(cx,cy,r*f,0,Math.PI*2); ctx.stroke(); }
+    drawDriveTopDown(ctx,cx,cy,r*0.35,drive);
+  } else { // RCSK
+    ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r*0.65,0,Math.PI*2); ctx.stroke();
+    ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.42,0,Math.PI*2); ctx.stroke();
+    drawDriveTopDown(ctx,cx,cy,r*0.28,drive);
+  }
+}
+
+function drawDriveTopDown(ctx, cx, cy, r, drive) {
+  ctx.fillStyle='black';
+  if (drive==='PH') {
+    const lw = Math.max(3, r/3);
+    ctx.fillRect(cx-lw/2, cy-r, lw, r*2);
+    ctx.fillRect(cx-r, cy-lw/2, r*2, lw);
+  } else {
+    ctx.beginPath();
+    for (let i=0;i<6;i++) {
+      const a = (60*i-30)*Math.PI/180;
+      const px=cx+r*Math.cos(a), py=cy+r*Math.sin(a);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+// Side profiles
+function drawSideProfile(ctx, x0, y0, w, h, head) {
+  const cx = x0+w/2;
+  ctx.strokeStyle='black'; ctx.lineWidth=3;
+  const sL=cx-w*0.15, sR=cx+w*0.15, sB=y0+h*0.88, tip=y0+h*0.96;
+
+  if (head==='CAP') {
+    const hL=cx-w*0.30,hR=cx+w*0.30,hT=y0+h*0.04,hB=y0+h*0.37;
+    ctx.strokeRect(hL,hT,hR-hL,hB-hT);
+    const ch=w*0.04;
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(hL,hT+ch);ctx.lineTo(hL+ch,hT);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(hR,hT+ch);ctx.lineTo(hR-ch,hT);ctx.stroke();
+    ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
+    drawThreads(ctx,sL,sR,hB+8,sB);
+    drawTip(ctx,sL,sR,sB,cx,tip);
+  } else if (head==='BTN') {
+    const dL=cx-w*0.40,dR=cx+w*0.40,base=y0+h*0.35,dT=y0+h*0.04;
+    ctx.beginPath();ctx.ellipse(cx,(dT+base+h*0.28)/2,(dR-dL)/2+w*0.02,(base+h*0.28-dT)/2,0,Math.PI+0.035,-0.035);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(dL,base);ctx.lineTo(dR,base);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sL,base);ctx.lineTo(sL,sB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sR,base);ctx.lineTo(sR,sB);ctx.stroke();
+    drawThreads(ctx,sL,sR,base+8,sB);
+    drawTip(ctx,sL,sR,sB,cx,tip);
+  } else if (head==='CSK') {
+    const hL=cx-w*0.42,hR=cx+w*0.42,hT=y0+h*0.16,hB=y0+h*0.38;
+    ctx.beginPath();ctx.moveTo(hL,hT);ctx.lineTo(hR,hT);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(hL,hT);ctx.lineTo(sL,hB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(hR,hT);ctx.lineTo(sR,hB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
+    drawThreads(ctx,sL,sR,hB+8,sB);
+    drawTip(ctx,sL,sR,sB,cx,tip);
+  } else { // RCSK
+    const hL=cx-w*0.42,hR=cx+w*0.42,asY=y0+h*0.22,hB=y0+h*0.40,dA=y0+h*0.04;
+    ctx.beginPath();ctx.ellipse(cx,(dA+asY+h*0.16)/2,(hR-hL)/2+w*0.02,(asY+h*0.16-dA)/2,0,Math.PI+0.035,-0.035);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(hL,asY);ctx.lineTo(sL,hB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(hR,asY);ctx.lineTo(sR,hB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
+    drawThreads(ctx,sL,sR,hB+8,sB);
+    drawTip(ctx,sL,sR,sB,cx,tip);
+  }
+}
+
+function drawThreads(ctx, l, r, top, bot) {
+  ctx.lineWidth=1; ctx.strokeStyle='black';
+  for (let y=top; y<bot-2; y+=7) {
+    ctx.beginPath(); ctx.moveTo(l+2,y); ctx.lineTo(r-2,y+1); ctx.stroke();
+  }
+  ctx.lineWidth=3;
+}
+
+function drawTip(ctx, l, r, bot, cx, tip) {
+  ctx.lineWidth=3; ctx.strokeStyle='black';
+  ctx.beginPath(); ctx.moveTo(l,bot); ctx.lineTo(cx,tip); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(r,bot); ctx.lineTo(cx,tip); ctx.stroke();
+}
+
+function drawNutTopDown(ctx, cx, cy, r) {
+  ctx.strokeStyle='black'; ctx.lineWidth=3;
+  ctx.beginPath();
+  for (let i=0;i<6;i++) {
+    const a=60*i*Math.PI/180;
+    const px=cx+r*Math.cos(a),py=cy+r*Math.sin(a);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.closePath(); ctx.stroke();
+  ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.38,0,Math.PI*2); ctx.stroke();
+}
+
+function drawNutSide(ctx, x0, y0, w, h) {
+  const cx=x0+w/2, hw=w*0.34, hh=h*0.22, ch=w*0.06;
+  const top=y0+h*0.28, bot=top+2*hh;
+  ctx.strokeStyle='black'; ctx.lineWidth=3;
+  ctx.strokeRect(cx-hw,top+ch,hw*2,bot-top-ch);
+  ctx.beginPath();ctx.moveTo(cx-hw,top+ch);ctx.lineTo(cx-hw+ch,top);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-hw+ch,top);ctx.lineTo(cx+hw-ch,top);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+hw-ch,top);ctx.lineTo(cx+hw,top+ch);ctx.stroke();
+  ctx.lineWidth=1;
+  const pw=w*0.12;
+  ctx.beginPath();ctx.moveTo(cx-pw,top);ctx.lineTo(cx-pw,bot);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+pw,top);ctx.lineTo(cx+pw,bot);ctx.stroke();
+}
+
+function drawWasherTopDown(ctx, cx, cy, r) {
+  ctx.strokeStyle='black'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.40,0,Math.PI*2); ctx.stroke();
+}
+
+function drawWasherSide(ctx, x0, y0, w, h) {
+  const cx=x0+w/2, hw=w*0.40, hh=h*0.05, cy=y0+h/2;
+  ctx.strokeStyle='black'; ctx.lineWidth=3;
+  ctx.strokeRect(cx-hw,cy-hh,hw*2,hh*2);
+  ctx.lineWidth=1;
+  const pw=w*0.14;
+  ctx.beginPath();ctx.moveTo(cx-pw,cy-hh);ctx.lineTo(cx-pw,cy+hh);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+pw,cy-hh);ctx.lineTo(cx+pw,cy+hh);ctx.stroke();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LABEL GENERATION & FILTERING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getLabelKey(cfg) {
+  if (cfg.cat==='screw') return `${cfg.size}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.material}`;
+  return `${cfg.size}_${cfg.cat}_${cfg.material}`;
+}
+
+function buildAllLabels() {
+  allLabels = [];
+  for (const size of SIZES) {
+    // Screws
+    for (const len of SIZE_LENGTHS[size]) {
+      for (const head of Object.keys(HEADS)) {
+        for (const drive of ['PH','HX']) {
+          for (const mat of MATS) {
+            allLabels.push({cat:'screw',size,length:len,head,drive,material:mat});
+          }
+        }
+      }
+    }
+    // Hardware
+    for (const mat of MATS) {
+      allLabels.push({cat:'nut',size,material:mat});
+      allLabels.push({cat:'washer',size,material:mat});
+    }
+  }
+}
+
+function matchesFilters(cfg) {
+  if (!filters.cat.has(cfg.cat)) return false;
+  if (!filters.size.has(cfg.size)) return false;
+  if (!filters.mat.has(cfg.material)) return false;
+  if (cfg.cat==='screw') {
+    if (!filters.head.has(cfg.head)) return false;
+    if (!filters.drive.has(cfg.drive)) return false;
+    if (!filters.len.has(cfg.length)) return false;
+  }
+  // Search box
+  const q = document.getElementById('searchBox').value.toLowerCase().trim();
+  if (q) {
+    const searchStr = getLabelKey(cfg).toLowerCase() + ' ' +
+      (cfg.cat==='screw' ? HEADS[cfg.head].full.toLowerCase() : cfg.cat) + ' ' +
+      cfg.material.toLowerCase();
+    const terms = q.split(/\s+/);
+    for (const t of terms) { if (!searchStr.includes(t)) return false; }
+  }
+  return true;
+}
+
+function applyFilters() {
+  const grid = document.getElementById('labelGrid');
+  const empty = document.getElementById('emptyState');
+  grid.innerHTML = '';
+  let count = 0;
+
+  // Limit display to first 200 matching labels for performance
+  const MAX_DISPLAY = 200;
+  let displayed = 0;
+
+  for (const cfg of allLabels) {
+    if (!matchesFilters(cfg)) continue;
+    count++;
+    if (displayed >= MAX_DISPLAY) continue;
+    displayed++;
+
+    const key = getLabelKey(cfg);
+    const card = document.createElement('div');
+    card.className = 'label-card' + (selectedLabels.has(key) ? ' selected' : '');
+    card.onclick = () => toggleSelect(key, cfg, card);
+
+    const canvas = document.createElement('canvas');
+    drawLabel(canvas, cfg);
+    card.appendChild(canvas);
+
+    const info = document.createElement('div');
+    info.className = 'label-info';
+    info.innerHTML = `<span>${key}</span>`;
+    if (selectedLabels.has(key)) {
+      info.innerHTML += `<span style="color:var(--accent)">×${selectedLabels.get(key).qty}</span>`;
+    }
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
+
+  document.getElementById('visibleCount').textContent =
+    count > MAX_DISPLAY ? `(showing ${MAX_DISPLAY} of ${count})` : `(${count} labels)`;
+  empty.style.display = count === 0 ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SELECTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function toggleSelect(key, cfg, card) {
+  if (selectedLabels.has(key)) {
+    selectedLabels.delete(key);
+    card.classList.remove('selected');
+  } else {
+    selectedLabels.set(key, {cfg, qty:1});
+    card.classList.add('selected');
+  }
+  updateSelectionUI();
+}
+
+function selectAllVisible() {
+  for (const cfg of allLabels) {
+    if (!matchesFilters(cfg)) continue;
+    const key = getLabelKey(cfg);
+    if (!selectedLabels.has(key)) selectedLabels.set(key, {cfg, qty:1});
+  }
+  applyFilters();
+  updateSelectionUI();
+}
+
+function clearSelection() {
+  selectedLabels.clear();
+  applyFilters();
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  let total = 0;
+  for (const v of selectedLabels.values()) total += v.qty;
+  document.getElementById('selectedCount').textContent = total;
+  document.getElementById('btnGenSheet').disabled = total === 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILTER TOGGLE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function toggleFilter(type, val, el) {
+  const numVal = type==='len' ? parseInt(val) : val;
+  const set = filters[type];
+  if (set.has(numVal)) { set.delete(numVal); el.classList.remove('active'); }
+  else { set.add(numVal); el.classList.add('active'); }
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRINT SHEET GENERATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function generateSheet() {
+  const container = document.getElementById('sheetContainer');
+  container.innerHTML = '';
+
+  // Collect all labels with quantities
+  const labels = [];
+  for (const [key, {cfg, qty}] of selectedLabels) {
+    for (let i=0; i<qty; i++) labels.push(cfg);
+  }
+
+  if (labels.length === 0) return;
+
+  const pageCount = Math.ceil(labels.length / PER_PAGE);
+  let idx = 0;
+
+  for (let p=0; p<pageCount; p++) {
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = PW; pageCanvas.height = PH_PAGE;
+    pageCanvas.className = 'sheet-preview';
+    pageCanvas.style.width = '100%';
+    pageCanvas.style.maxWidth = '700px';
+    const pctx = pageCanvas.getContext('2d');
+    pctx.fillStyle = 'white'; pctx.fillRect(0,0,PW,PH_PAGE);
+
+    for (let row=0; row<ROWS && idx<labels.length; row++) {
+      for (let col=0; col<COLS && idx<labels.length; col++) {
+        const x = MARGIN + col*(LW+GAP_X);
+        const y = MARGIN + row*(LH+GAP_Y);
+        // Draw label onto temp canvas, then paste
+        const tmpC = document.createElement('canvas');
+        drawLabel(tmpC, labels[idx]);
+        pctx.drawImage(tmpC, x, y);
+        idx++;
+      }
+    }
+
+    const pageLabel = document.createElement('div');
+    pageLabel.style.cssText = 'font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0;';
+    pageLabel.textContent = `Page ${p+1} of ${pageCount} (${Math.min(PER_PAGE, labels.length - p*PER_PAGE)} labels)`;
+    container.appendChild(pageLabel);
+    container.appendChild(pageCanvas);
+  }
+
+  document.getElementById('printModal').classList.add('open');
+}
+
+function closePrintModal() { document.getElementById('printModal').classList.remove('open'); }
+
+function printSheets() {
+  const canvases = document.querySelectorAll('#sheetContainer canvas');
+  const win = window.open('','_blank');
+  win.document.write('<html><head><title>Screw Labels</title><style>@page{size:A4;margin:0}body{margin:0}img{width:210mm;height:297mm;page-break-after:always}</style></head><body>');
+  canvases.forEach(c => { win.document.write(`<img src="${c.toDataURL('image/png')}">`); });
+  win.document.write('</body></html>');
+  win.document.close();
+  win.onload = () => { win.print(); };
+}
+
+function downloadSheetPDF() {
+  const canvases = document.querySelectorAll('#sheetContainer canvas');
+  canvases.forEach((c, i) => {
+    const link = document.createElement('a');
+    link.download = `label_sheet_${i+1}.png`;
+    link.href = c.toDataURL('image/png');
+    link.click();
+  });
+}
+
+function downloadSelected() {
+  for (const [key, {cfg}] of selectedLabels) {
+    const c = document.createElement('canvas');
+    drawLabel(c, cfg);
+    const link = document.createElement('a');
+    link.download = key + '.png';
+    link.href = c.toDataURL('image/png');
+    link.click();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICK ADD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initQuickAdd() {
+  const qaSize = document.getElementById('qaSize');
+  SIZES.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=s; qaSize.appendChild(o); });
+  qaSize.onchange = () => {
+    const qaLen = document.getElementById('qaLength');
+    qaLen.innerHTML = '<option value="">Length</option>';
+    const lengths = SIZE_LENGTHS[qaSize.value] || [];
+    lengths.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l+'mm'; qaLen.appendChild(o); });
+  };
+  const qaHead = document.getElementById('qaHead');
+  Object.entries(HEADS).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v.full}`; qaHead.appendChild(o); });
+  const qaDrive = document.getElementById('qaDrive');
+  Object.entries(DRIVES).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v}`; qaDrive.appendChild(o); });
+  const qaMat = document.getElementById('qaMat');
+  MATS.forEach(m => { const o = document.createElement('option'); o.value=m; o.textContent=m; qaMat.appendChild(o); });
+}
+
+function quickAdd() {
+  const size = document.getElementById('qaSize').value;
+  const len = document.getElementById('qaLength').value;
+  const head = document.getElementById('qaHead').value;
+  const drive = document.getElementById('qaDrive').value;
+  const mat = document.getElementById('qaMat').value;
+  const qty = parseInt(document.getElementById('qaQty').value) || 1;
+
+  if (!size || !mat) { alert('Please select at least Size and Material'); return; }
+
+  // If no length/head/drive, treat as hardware or prompt
+  if (!len && !head && !drive) {
+    // Add both nut and washer
+    ['nut','washer'].forEach(cat => {
+      const cfg = {cat, size, material:mat};
+      const key = getLabelKey(cfg);
+      selectedLabels.set(key, {cfg, qty});
+    });
+  } else if (len && head && drive) {
+    const cfg = {cat:'screw', size, length:parseInt(len), head, drive, material:mat};
+    const key = getLabelKey(cfg);
+    selectedLabels.set(key, {cfg, qty});
+  } else {
+    alert('For screws, please select Length, Head, and Drive.'); return;
+  }
+
+  applyFilters();
+  updateSelectionUI();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function init() {
+  // Build length filter chips
+  const lenContainer = document.getElementById('lenFilter');
+  ALL_LENGTHS.forEach(l => {
+    const chip = document.createElement('div');
+    chip.className = 'chip length-chip active';
+    chip.dataset.val = l;
+    chip.textContent = l;
+    chip.onclick = () => toggleFilter('len', l, chip);
+    lenContainer.appendChild(chip);
+  });
+
+  buildAllLabels();
+  initQuickAdd();
+
+  // Start with minimal filter to keep initial load fast
+  // Only show M4 by default
+  filters.size = new Set(['M4']);
+  document.querySelectorAll('#sizeFilter .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === 'M4');
+  });
+
+  applyFilters();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

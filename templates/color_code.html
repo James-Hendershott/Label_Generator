@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Screw Color Code System — James's Workshop</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e14; --surface: #151820; --surface2: #1c2030; --surface3: #242838;
+  --border: #2a3048; --border-light: #353b55;
+  --text: #e4e8f4; --text-dim: #8890aa; --text-muted: #555c78;
+  --m2: #FF4444; --m25: #FF8C00; --m3: #FFD700; --m4: #22BB22; --m5: #3399FF; --m6: #9933FF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); padding:1.5rem; }
+.container { max-width:1200px; margin:0 auto; }
+.header { text-align:center; padding:2rem; margin-bottom:1.5rem;
+  background:linear-gradient(160deg, var(--surface), var(--surface2));
+  border:1px solid var(--border); border-radius:16px; position:relative; overflow:hidden; }
+.header::before { content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--m2), var(--m25), var(--m3), var(--m4), var(--m5), var(--m6)); }
+.header h1 { font-size:1.7rem; font-weight:700; letter-spacing:-0.02em; }
+.header h1 span { background:linear-gradient(90deg, var(--m3), var(--m5));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.header p { color:var(--text-dim); font-size:0.9rem; margin-top:0.3rem; }
+.color-legend { display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; margin:1.2rem 0 1.8rem; }
+.color-legend-item { display:flex; align-items:center; gap:0.4rem; padding:0.4rem 0.8rem;
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:500; }
+.swatch { width:16px; height:16px; border-radius:3px; }
+.section-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.1em;
+  color:var(--text-muted); font-weight:600; margin-bottom:0.6rem; padding-left:4px; margin-top:1.8rem; }
+.profiles { display:grid; grid-template-columns:repeat(4, 1fr); gap:0.6rem; margin-bottom:1.5rem; }
+.profile-card { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:1rem 0.8rem; text-align:center; }
+.profile-card .name { font-size:0.78rem; font-weight:600; margin-top:0.4rem; }
+.profile-card .abbr { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text-muted); }
+.hw-cards { display:grid; grid-template-columns:repeat(2, 1fr); gap:0.6rem; max-width:420px; margin-bottom:1.8rem; }
+.hw-card { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:0.8rem 1rem; display:flex; align-items:center; gap:0.6rem; }
+.hw-card .name { font-size:0.82rem; font-weight:600; }
+.hw-card .code { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text-muted); }
+
+/* KEY BOX */
+.key-box { background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:1.4rem 1.6rem; margin-bottom:1.8rem; }
+.key-box h2 { font-size:0.95rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+.key-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem 2rem; }
+.key-section h3 { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-muted); font-weight:600; margin-bottom:0.5rem; }
+.key-items { display:flex; flex-direction:column; gap:0.45rem; }
+.key-item { display:flex; align-items:center; gap:0.6rem; font-size:0.8rem; }
+.key-item .ki-icon { width:36px; height:36px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.key-item .ki-label { display:flex; flex-direction:column; }
+.key-item .ki-label strong { font-size:0.8rem; }
+.key-item .ki-label span { font-size:0.68rem; color:var(--text-muted); font-family:'JetBrains Mono',monospace; }
+
+/* BAR DEMO */
+.bar-demo { display:flex; gap:0.6rem; justify-content:center; align-items:flex-end; margin:1rem 0 1.5rem; }
+.bar-item { text-align:center; }
+.bar-stack { display:flex; flex-direction:column; gap:2px; align-items:center; margin-bottom:4px; }
+.bar-unit { width:10px; height:10px; border-radius:2px; }
+.bar-label { font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:600; }
+
+/* TABLES */
+table { width:100%; border-collapse:separate; border-spacing:0; border:1px solid var(--border);
+  border-radius:12px; overflow:hidden; margin-bottom:1.8rem; }
+th, td { padding:0.5rem 0.35rem; text-align:center; border-bottom:1px solid var(--border);
+  border-right:1px solid var(--border); font-size:0.72rem; }
+th:last-child, td:last-child { border-right:none; }
+tr:last-child td { border-bottom:none; }
+th { background:var(--surface2); color:var(--text-dim); font-weight:600; font-size:0.62rem;
+  text-transform:uppercase; letter-spacing:0.06em; padding:0.6rem 0.4rem; }
+th:first-child { text-align:left; padding-left:0.8rem; }
+td:first-child { text-align:left; padding-left:0.8rem; font-family:'JetBrains Mono',monospace;
+  font-weight:700; font-size:0.9rem; background:var(--surface2); width:70px; }
+.cell { display:flex; flex-direction:column; align-items:center; gap:3px; padding:2px 0; }
+.cell-code { font-family:'JetBrains Mono',monospace; font-size:0.65rem; font-weight:600; }
+.cell-icon { display:flex; align-items:center; justify-content:center; }
+.cell-icon svg { opacity:0.7; }
+
+.row-m2 td:first-child { color:var(--m2); border-left:3px solid var(--m2); }
+.row-m2 td:not(:first-child) { background:rgba(255,68,68,0.06); }
+.row-m2 .cell-code { color:var(--m2); }
+.row-m25 td:first-child { color:var(--m25); border-left:3px solid var(--m25); }
+.row-m25 td:not(:first-child) { background:rgba(255,140,0,0.06); }
+.row-m25 .cell-code { color:var(--m25); }
+.row-m3 td:first-child { color:var(--m3); border-left:3px solid var(--m3); }
+.row-m3 td:not(:first-child) { background:rgba(255,215,0,0.06); }
+.row-m3 .cell-code { color:var(--m3); }
+.row-m4 td:first-child { color:var(--m4); border-left:3px solid var(--m4); }
+.row-m4 td:not(:first-child) { background:rgba(34,187,34,0.06); }
+.row-m4 .cell-code { color:var(--m4); }
+.row-m5 td:first-child { color:var(--m5); border-left:3px solid var(--m5); }
+.row-m5 td:not(:first-child) { background:rgba(51,153,255,0.06); }
+.row-m5 .cell-code { color:var(--m5); }
+.row-m6 td:first-child { color:var(--m6); border-left:3px solid var(--m6); }
+.row-m6 td:not(:first-child) { background:rgba(153,51,255,0.06); }
+.row-m6 .cell-code { color:var(--m6); }
+
+.ref-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:0.4rem; margin-bottom:1.5rem; }
+.ref-card { background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  padding:0.5rem; text-align:center; }
+.ref-card .sz { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.82rem; }
+.ref-card .val { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text-muted); margin-top:2px; }
+.print-note { background:var(--surface2); border:1px dashed var(--border); border-radius:10px;
+  padding:1rem; margin-top:1.5rem; }
+.print-note h3 { font-size:0.82rem; margin-bottom:0.4rem; }
+.print-note p { font-size:0.75rem; color:var(--text-dim); line-height:1.5; }
+@media (max-width:700px) {
+  .profiles { grid-template-columns:repeat(2,1fr); }
+  .ref-grid { grid-template-columns:repeat(3,1fr); }
+  .key-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>⚙️ Machine Screw <span>Color Code System</span></h1>
+  <p>M2–M6 · Cap · Button · CSK · Raised CSK · Phillips & Hex · Nuts & Washers</p>
+</div>
+
+<div class="color-legend">
+  <div class="color-legend-item"><div class="swatch" style="background:#FF4444"></div>M2 — Red</div>
+  <div class="color-legend-item"><div class="swatch" style="background:#FF8C00"></div>M2.5 — Orange</div>
+  <div class="color-legend-item"><div class="swatch" style="background:#FFD700"></div>M3 — Yellow</div>
+  <div class="color-legend-item"><div class="swatch" style="background:#22BB22"></div>M4 — Green</div>
+  <div class="color-legend-item"><div class="swatch" style="background:#3399FF"></div>M5 — Blue</div>
+  <div class="color-legend-item"><div class="swatch" style="background:#9933FF"></div>M6 — Purple</div>
+</div>
+
+<div class="section-label">Label Bar System (count bars on label = size)</div>
+<div class="bar-demo"><div class="bar-item"><div class="bar-stack"><div class="bar-unit" style="background:#FF4444"></div></div><div class="bar-label" style="color:#FF4444">M2</div></div><div class="bar-item"><div class="bar-stack"><div class="bar-unit" style="background:#FF8C00"></div><div class="bar-unit" style="background:#FF8C00"></div></div><div class="bar-label" style="color:#FF8C00">M2.5</div></div><div class="bar-item"><div class="bar-stack"><div class="bar-unit" style="background:#FFD700"></div><div class="bar-unit" style="background:#FFD700"></div><div class="bar-unit" style="background:#FFD700"></div></div><div class="bar-label" style="color:#FFD700">M3</div></div><div class="bar-item"><div class="bar-stack"><div class="bar-unit" style="background:#22BB22"></div><div class="bar-unit" style="background:#22BB22"></div><div class="bar-unit" style="background:#22BB22"></div><div class="bar-unit" style="background:#22BB22"></div></div><div class="bar-label" style="color:#22BB22">M4</div></div><div class="bar-item"><div class="bar-stack"><div class="bar-unit" style="background:#3399FF"></div><div class="bar-unit" style="background:#3399FF"></div><div class="bar-unit" style="background:#3399FF"></div><div class="bar-unit" style="background:#3399FF"></div><div class="bar-unit" style="background:#3399FF"></div></div><div class="bar-label" style="color:#3399FF">M5</div></div><div class="bar-item"><div class="bar-stack"><div class="bar-unit" style="background:#9933FF"></div><div class="bar-unit" style="background:#9933FF"></div><div class="bar-unit" style="background:#9933FF"></div><div class="bar-unit" style="background:#9933FF"></div><div class="bar-unit" style="background:#9933FF"></div><div class="bar-unit" style="background:#9933FF"></div></div><div class="bar-label" style="color:#9933FF">M6</div></div></div>
+<div class="section-label">Head Types</div>
+<div class="profiles">
+  <div class="profile-card">
+    <svg viewBox="0 0 80 90" width="56" height="63"><rect x="16" y="8" width="48" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="16" y1="12" x2="20" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="64" y1="12" x2="60" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="28" y1="38" x2="28" y2="82" stroke="currentColor" stroke-width="2"/><line x1="52" y1="38" x2="52" y2="82" stroke="currentColor" stroke-width="2"/><line x1="28" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="52" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="30" y1="46" x2="50" y2="47" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="53" x2="50" y2="54" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="60" x2="50" y2="61" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="67" x2="50" y2="68" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="74" x2="50" y2="75" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>
+    <div class="name">Cap Head</div><div class="abbr">CAP · CH</div>
+  </div>
+  <div class="profile-card">
+    <svg viewBox="0 0 80 90" width="56" height="63"><path d="M8,32 Q8,8 40,8 Q72,8 72,32" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="8" y1="32" x2="72" y2="32" stroke="currentColor" stroke-width="2.5"/><line x1="28" y1="32" x2="28" y2="82" stroke="currentColor" stroke-width="2"/><line x1="52" y1="32" x2="52" y2="82" stroke="currentColor" stroke-width="2"/><line x1="28" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="52" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="30" y1="40" x2="50" y2="41" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="47" x2="50" y2="48" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="54" x2="50" y2="55" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="61" x2="50" y2="62" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="68" x2="50" y2="69" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="75" x2="50" y2="76" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>
+    <div class="name">Button Head</div><div class="abbr">BTN · BH</div>
+  </div>
+  <div class="profile-card">
+    <svg viewBox="0 0 80 90" width="56" height="63"><line x1="4" y1="18" x2="76" y2="18" stroke="currentColor" stroke-width="2.5"/><line x1="4" y1="18" x2="28" y2="36" stroke="currentColor" stroke-width="2.5"/><line x1="76" y1="18" x2="52" y2="36" stroke="currentColor" stroke-width="2.5"/><line x1="28" y1="36" x2="28" y2="82" stroke="currentColor" stroke-width="2"/><line x1="52" y1="36" x2="52" y2="82" stroke="currentColor" stroke-width="2"/><line x1="28" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="52" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="30" y1="44" x2="50" y2="45" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="51" x2="50" y2="52" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="58" x2="50" y2="59" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="65" x2="50" y2="66" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="72" x2="50" y2="73" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>
+    <div class="name">Countersunk</div><div class="abbr">CSK · FK</div>
+  </div>
+  <div class="profile-card">
+    <svg viewBox="0 0 80 90" width="56" height="63"><path d="M4,24 Q40,4 76,24" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="4" y1="24" x2="28" y2="38" stroke="currentColor" stroke-width="2.5"/><line x1="76" y1="24" x2="52" y2="38" stroke="currentColor" stroke-width="2.5"/><line x1="28" y1="38" x2="28" y2="82" stroke="currentColor" stroke-width="2"/><line x1="52" y1="38" x2="52" y2="82" stroke="currentColor" stroke-width="2"/><line x1="28" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="52" y1="82" x2="40" y2="88" stroke="currentColor" stroke-width="2"/><line x1="30" y1="46" x2="50" y2="47" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="53" x2="50" y2="54" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="60" x2="50" y2="61" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="67" x2="50" y2="68" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="30" y1="74" x2="50" y2="75" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>
+    <div class="name">Raised Countersunk</div><div class="abbr">RCSK · RK</div>
+  </div>
+</div>
+
+<div class="section-label">Additional Hardware</div>
+<div class="hw-cards">
+  <div class="hw-card">
+    <svg viewBox="0 0 40 40" width="32" height="32"><polygon points="20,2 37,11 37,29 20,38 3,29 3,11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    <div><div class="name">Hex Nut</div><div class="code">NUT · NT</div></div>
+  </div>
+  <div class="hw-card">
+    <svg viewBox="0 0 40 40" width="32" height="32"><circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    <div><div class="name">Flat Washer</div><div class="code">WASH · WS</div></div>
+  </div>
+</div>
+
+<div class="key-box">
+  <h2>🔑 Matrix Key</h2>
+  <div class="key-grid">
+    <div class="key-section">
+      <h3>Drive Type Icons (used in matrix below)</h3>
+      <div class="key-items">
+        <div class="key-item">
+          <div class="ki-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22"><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          </div>
+          <div class="ki-label"><strong>Phillips Drive</strong><span>PH — cross recess (+)</span></div>
+        </div>
+        <div class="key-item">
+          <div class="ki-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22"><polygon points="12,3 20.2,7.5 20.2,16.5 12,21 3.8,16.5 3.8,7.5" fill="currentColor" opacity="0.9"/></svg>
+          </div>
+          <div class="ki-label"><strong>Hex Socket Drive</strong><span>HX — hex recess (&#x2B21;)</span></div>
+        </div>
+        <div class="key-item">
+          <div class="ki-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20"><polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          </div>
+          <div class="ki-label"><strong>Hex Nut</strong><span>NT — hexagon outline + hole</span></div>
+        </div>
+        <div class="key-item">
+          <div class="ki-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          </div>
+          <div class="ki-label"><strong>Flat Washer</strong><span>WS — concentric circles</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="key-section">
+      <h3>Head Type Codes</h3>
+      <div class="key-items">
+        <div class="key-item">
+          <div class="ki-icon" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;">CH</div>
+          <div class="ki-label"><strong>Cap Head</strong><span>Tall cylindrical head</span></div>
+        </div>
+        <div class="key-item">
+          <div class="ki-icon" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;">BH</div>
+          <div class="ki-label"><strong>Button Head</strong><span>Low wide dome head</span></div>
+        </div>
+        <div class="key-item">
+          <div class="ki-icon" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;">FK</div>
+          <div class="ki-label"><strong>Countersunk (Flat)</strong><span>Flush-mount flat top</span></div>
+        </div>
+        <div class="key-item">
+          <div class="ki-icon" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;">RK</div>
+          <div class="ki-label"><strong>Raised Countersunk</strong><span>Dome + countersunk taper</span></div>
+        </div>
+      </div>
+      <h3 style="margin-top:1rem;">Label Code Format</h3>
+      <div style="display:flex;align-items:center;gap:0.3rem;margin-top:0.4rem;">
+        <div style="padding:0.3rem 0.5rem;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600;background:rgba(51,153,255,0.15);color:#3399FF;border:1px solid rgba(51,153,255,0.3);">M4</div>
+        <span style="color:var(--text-muted);font-family:monospace;font-weight:600;">-</span>
+        <div style="padding:0.3rem 0.5rem;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600;background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border);">CH</div>
+        <span style="color:var(--text-muted);font-family:monospace;font-weight:600;">-</span>
+        <div style="padding:0.3rem 0.5rem;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600;background:rgba(255,255,255,0.04);color:var(--text-dim);border:1px dashed var(--border);">HX</div>
+        <span style="color:var(--text-muted);margin:0 0.3rem;font-size:1rem;">→</span>
+        <span style="font-size:0.75rem;color:var(--text-dim);">M4 Cap Head, Hex Socket</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label"><svg viewBox="0 0 16 16" width="14" height="14" style="vertical-align:middle;margin-right:4px;"><line x1="8" y1="2" x2="8" y2="14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Phillips Drive — Full Matrix</div>
+<table>
+<thead><tr><th>Size</th><th>CH<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Cap Head</span></th><th>BH<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Button</span></th><th>FK<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Countersunk</span></th><th>RK<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Raised CSK</span></th><th>NUT<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Hex Nut</span></th><th>WASH<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Washer</span></th></tr></thead>
+<tbody>
+<tr class="row-m2"><td>M2</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2-CH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2-BH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2-FK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2-RK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2-WS</span></div></td></tr>
+<tr class="row-m25"><td>M2.5</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2.5-CH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2.5-BH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2.5-FK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M2.5-RK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2.5-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2.5-WS</span></div></td></tr>
+<tr class="row-m3"><td>M3</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M3-CH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M3-BH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M3-FK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M3-RK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M3-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M3-WS</span></div></td></tr>
+<tr class="row-m4"><td>M4</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M4-CH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M4-BH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M4-FK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M4-RK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M4-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M4-WS</span></div></td></tr>
+<tr class="row-m5"><td>M5</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M5-CH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M5-BH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M5-FK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M5-RK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M5-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M5-WS</span></div></td></tr>
+<tr class="row-m6"><td>M6</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M6-CH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M6-BH-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M6-FK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="cell-code">M6-RK-PH</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M6-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M6-WS</span></div></td></tr>
+</tbody></table>
+
+<div class="section-label"><svg viewBox="0 0 16 16" width="14" height="14" style="vertical-align:middle;margin-right:4px;"><polygon points="8,1.5 14.5,5 14.5,11 8,14.5 1.5,11 1.5,5" fill="currentColor" opacity="0.8"/></svg> Hex Socket Drive — Full Matrix</div>
+<table>
+<thead><tr><th>Size</th><th>CH<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Cap Head</span></th><th>BH<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Button</span></th><th>FK<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Countersunk</span></th><th>RK<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Raised CSK</span></th><th>NUT<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Hex Nut</span></th><th>WASH<br><span style="font-weight:400;opacity:0.6;font-size:0.55rem">Washer</span></th></tr></thead>
+<tbody>
+<tr class="row-m2"><td>M2</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2-CH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2-BH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2-FK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2-RK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2-WS</span></div></td></tr>
+<tr class="row-m25"><td>M2.5</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2.5-CH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2.5-BH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2.5-FK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M2.5-RK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2.5-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M2.5-WS</span></div></td></tr>
+<tr class="row-m3"><td>M3</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M3-CH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M3-BH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M3-FK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M3-RK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M3-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M3-WS</span></div></td></tr>
+<tr class="row-m4"><td>M4</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M4-CH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M4-BH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M4-FK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M4-RK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M4-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M4-WS</span></div></td></tr>
+<tr class="row-m5"><td>M5</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M5-CH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M5-BH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M5-FK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M5-RK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M5-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M5-WS</span></div></td></tr>
+<tr class="row-m6"><td>M6</td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M6-CH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M6-BH-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M6-FK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="16" height="16"><polygon points="9,2 15.5,5.5 15.5,12.5 9,16 2.5,12.5 2.5,5.5" fill="currentColor" opacity="0.85"/></svg></span><span class="cell-code">M6-RK-HX</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><polygon points="9,1.5 16,5.5 16,12.5 9,16.5 2,12.5 2,5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="2.8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M6-NT</span></div></td><td><div class="cell"><span class="cell-icon"><svg viewBox="0 0 18 18" width="14" height="14"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1"/></svg></span><span class="cell-code">M6-WS</span></div></td></tr>
+</tbody></table>
+
+<div class="section-label">Hex Key & Nut Quick Reference</div>
+<div class="ref-grid">
+  <div class="ref-card"><div class="sz" style="color:#FF4444">M2</div><div class="val">Key: 1.5mm</div><div class="val">Nut AF: 4mm</div></div>
+  <div class="ref-card"><div class="sz" style="color:#FF8C00">M2.5</div><div class="val">Key: 2.0mm</div><div class="val">Nut AF: 5mm</div></div>
+  <div class="ref-card"><div class="sz" style="color:#FFD700">M3</div><div class="val">Key: 2.5mm</div><div class="val">Nut AF: 5.5mm</div></div>
+  <div class="ref-card"><div class="sz" style="color:#22BB22">M4</div><div class="val">Key: 3.0mm</div><div class="val">Nut AF: 7mm</div></div>
+  <div class="ref-card"><div class="sz" style="color:#3399FF">M5</div><div class="val">Key: 4.0mm</div><div class="val">Nut AF: 8mm</div></div>
+  <div class="ref-card"><div class="sz" style="color:#9933FF">M6</div><div class="val">Key: 5.0mm</div><div class="val">Nut AF: 10mm</div></div>
+</div>
+
+<div class="print-note">
+  <h3>🖨️ Label System Notes</h3>
+  <p>
+    <strong>Labels:</strong> 40×16mm @ 300 DPI for Phomemo M110. Each label shows dual views (top-down face + side profile).<br>
+    <strong>Bars:</strong> Count the black bars on the left edge → 1=M2, 2=M2.5, 3=M3, 4=M4, 5=M5, 6=M6.<br>
+    <strong>Containers:</strong> Use matching filament color or paint a band: Red=M2, Orange=M2.5, Yellow=M3, Green=M4, Blue=M5, Purple=M6.<br>
+    <strong>Coding:</strong> <code style="background:var(--surface);padding:2px 6px;border-radius:4px;">SIZE-HEAD-DRIVE</code> → e.g. M4-CH-HX = M4 Cap Head Hex Socket.
+  </p>
+</div>
+
+</div>
+</body>
+</html>
