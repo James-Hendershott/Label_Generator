@@ -53,9 +53,23 @@ Label_Generator/
 - **HTML files are self-contained**: Both `label_maker.html` and `color_code.html` include all CSS/JS inline. Flask serves them unchanged — no Jinja templating needed.
 - **No database yet**: Labels are generated client-side in the browser. Server-side generation is a backlog item.
 - **static/output/ is gitignored**: Generated label PNGs go here but aren't tracked in version control.
+- **Custom labels use localStorage**: Labels created with non-predefined size/length combos are saved to `localStorage` under the key `customLabels` and reloaded on init.
+
+### Label Layout (40×16mm @ 300 DPI = 472×189px)
+
+- **Top bars**: Full-width bars spanning the label (count = M size: 1=M2, 2=M2.5, ... 6=M6)
+- **Line 1**: `M3 x 50` — size × length (62px bold, no "mm")
+- **Line 2**: `HEX CAP` — drive abbreviation + head abbreviation (32px bold)
+- **Line 3**: `Socket: Hex` — full drive name (22px)
+- **Line 4**: `Head: Cap Head` — full head name (22px)
+- **Line 5**: `Black` — material (22px bold)
+- **Right side**: Top-down and side profile drawings (52/48% split)
+- **Material styling**: Black = solid filled icons with white details; Stainless = outline icons
+- **Print**: US Letter (8.5×11") at 300 DPI
 
 ## Development Notes
 
 - The original HTML files came from Unraid at `/mnt/user/ShottsBox/Projects/Tool_Box_Organizer/Labels/`
 - `individual_labels/` directory (~1700+ PNGs) is not included in the project — it's generated build output
 - When modifying HTML files, test that inline JS/CSS still works since there's no build step
+- `preview_label.py` generates a sample PNG for label layout prototyping (not part of the app)

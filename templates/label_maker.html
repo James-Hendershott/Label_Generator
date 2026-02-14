@@ -224,7 +224,8 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
     <h3>⚡ Quick Add Label</h3>
     <div class="quick-add-row">
       <select class="quick-select" id="qaSize"><option value="">Size</option></select>
-      <select class="quick-select" id="qaLength"><option value="">Length</option></select>
+      <input type="number" class="qty-input" id="qaLength" placeholder="mm" min="1" max="200" list="qaLengthSuggestions" style="width:70px">
+      <datalist id="qaLengthSuggestions"></datalist>
       <select class="quick-select" id="qaHead"><option value="">Head</option></select>
       <select class="quick-select" id="qaDrive"><option value="">Drive</option></select>
       <select class="quick-select" id="qaMat"><option value="">Material</option></select>
@@ -248,7 +249,7 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
   <div class="modal">
     <h2>🖨️ Print Preview</h2>
     <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.8rem;">
-      Labels are laid out on A4 pages at 40×16mm each. Print at 100% scale on sticker paper, then cut.
+      Labels are laid out on Letter pages (8.5×11") at 40×16mm each. Print at 100% scale on sticker paper, then cut.
     </p>
     <div id="sheetContainer"></div>
     <div class="modal-actions">
@@ -276,12 +277,13 @@ const SIZE_LENGTHS = {
 const ALL_LENGTHS = [...new Set(Object.values(SIZE_LENGTHS).flat())].sort((a,b)=>a-b);
 const HEADS = {CAP:{full:'Cap Head'},BTN:{full:'Button Head'},CSK:{full:'Countersunk'},RCSK:{full:'Raised Countersunk'}};
 const DRIVES = {PH:'Phillips',HX:'Hex'};
+const DRIVES_ABBR = {PH:'PH',HX:'HEX'};
 const MATS = ['Black','Stainless'];
 
 // Label dimensions at 300dpi
 const LW = 472, LH = 189;
-// A4 at 300dpi
-const PW = 2480, PH_PAGE = 3508;
+// US Letter (8.5"×11") at 300dpi
+const PW = 2550, PH_PAGE = 3300;
 const MARGIN = 50, GAP_X = 10, GAP_Y = 6;
 const COLS = Math.floor((PW - 2*MARGIN + GAP_X)/(LW+GAP_X));
 const ROWS = Math.floor((PH_PAGE - 2*MARGIN + GAP_Y)/(LH+GAP_Y));
@@ -303,59 +305,57 @@ function drawLabel(canvas, cfg) {
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, LW, LH);
 
-  // Horizontal bars at top
+  // Top bars: full width, taller
   const barCount = SIZE_BARS[cfg.size];
-  const barW=18, barH=10, barGap=5;
+  const barH = 14, barGap = 4;
+  const totalBarW = LW - 8; // 4px margin each side
+  const barW = Math.floor((totalBarW - (barCount - 1) * barGap) / barCount);
   ctx.fillStyle = 'black';
   for (let i=0; i<barCount; i++) {
-    ctx.fillRect(6 + i*(barW+barGap), 3, barW, barH);
+    ctx.fillRect(4 + i*(barW+barGap), 3, barW, barH);
   }
 
-  const ctop = 17;
+  const ctop = 3 + barH + 4;
 
-  // Text zone (left 40%)
-  const tzW = Math.floor(LW * 0.40);
+  // Text zone (left 52%)
+  const tzW = Math.floor(LW * 0.52);
   const tx = 8;
   ctx.fillStyle = 'black';
 
   if (cfg.cat === 'screw') {
-    // Line 1: Size + Drive
-    ctx.font = 'bold 44px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.size, tx, ctop + 38);
-    const sw = ctx.measureText(cfg.size).width;
-    ctx.font = 'bold 26px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.drive, tx + sw + 4, ctop + 32);
+    // Line 1: M3 x 50
+    ctx.font = 'bold 62px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.size + ' x ' + cfg.length, tx, ctop + 48);
 
-    // Line 2: Length
-    ctx.font = 'bold 26px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.length + 'mm', tx, ctop + 70);
+    // Line 2: HEX CAP
+    ctx.font = 'bold 32px "DejaVu Sans", sans-serif';
+    ctx.fillText((DRIVES_ABBR[cfg.drive]||cfg.drive) + ' ' + cfg.head, tx, ctop + 80);
 
-    // Line 3: Head abbr
-    ctx.font = 'bold 18px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.head, tx, ctop + 93);
+    // Line 3: Socket: Hex
+    ctx.font = '22px "DejaVu Sans", sans-serif';
+    ctx.fillText('Socket: ' + DRIVES[cfg.drive], tx, ctop + 104);
 
-    // Line 4: Full head name
-    ctx.font = '14px "DejaVu Sans", sans-serif';
-    ctx.fillText(HEADS[cfg.head].full, tx, ctop + 111);
+    // Line 4: Head: Cap Head
+    ctx.fillText('Head: ' + HEADS[cfg.head].full, tx, ctop + 126);
 
     // Line 5: Material
-    ctx.font = 'bold 14px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.material, tx, ctop + 128);
+    ctx.font = 'bold 22px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.material, tx, ctop + 150);
   } else {
     // Hardware label
-    ctx.font = 'bold 48px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.size, tx, ctop + 42);
+    ctx.font = 'bold 62px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.size, tx, ctop + 48);
 
-    ctx.font = 'bold 24px "DejaVu Sans", sans-serif';
-    const hwAbbr = cfg.cat === 'nut' ? 'NUT' : 'WASH';
-    ctx.fillText(hwAbbr, tx, ctop + 72);
+    ctx.font = 'bold 32px "DejaVu Sans", sans-serif';
+    const hwAbbr = cfg.cat === 'nut' ? 'NUT' : 'WASHER';
+    ctx.fillText(hwAbbr, tx, ctop + 80);
 
-    ctx.font = '15px "DejaVu Sans", sans-serif';
-    const hwFull = cfg.cat === 'nut' ? 'Hex Nut' : 'Washer';
-    ctx.fillText(hwFull, tx, ctop + 92);
+    ctx.font = '22px "DejaVu Sans", sans-serif';
+    const hwFull = cfg.cat === 'nut' ? 'Hex Nut' : 'Flat Washer';
+    ctx.fillText(hwFull, tx, ctop + 104);
 
-    ctx.font = 'bold 15px "DejaVu Sans", sans-serif';
-    ctx.fillText(cfg.material, tx, ctop + 112);
+    ctx.font = 'bold 22px "DejaVu Sans", sans-serif';
+    ctx.fillText(cfg.material, tx, ctop + 128);
   }
 
   // Divider
@@ -366,22 +366,24 @@ function drawLabel(canvas, cfg) {
   // Drawing zone
   const dzStart = tzW;
   const dzW = LW - dzStart - 4;
-  const tdZW = Math.floor(dzW * 0.44);
+  const tdZW = Math.floor(dzW * 0.48);
   const sideZW = dzW - tdZW;
   const contentH = LH - ctop - 4;
   const tdCx = dzStart + tdZW/2;
   const tdCy = ctop + contentH/2;
   const tdR = Math.min(tdZW*0.42, contentH*0.42);
 
+  const filled = cfg.material === 'Black';
+
   if (cfg.cat === 'screw') {
-    drawTopDown(ctx, tdCx, tdCy, tdR, cfg.head, cfg.drive);
-    drawSideProfile(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4, cfg.head);
+    drawTopDown(ctx, tdCx, tdCy, tdR, cfg.head, cfg.drive, filled);
+    drawSideProfile(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4, cfg.head, filled);
   } else if (cfg.cat === 'nut') {
-    drawNutTopDown(ctx, tdCx, tdCy, tdR);
-    drawNutSide(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4);
+    drawNutTopDown(ctx, tdCx, tdCy, tdR, filled);
+    drawNutSide(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4, filled);
   } else {
-    drawWasherTopDown(ctx, tdCx, tdCy, tdR);
-    drawWasherSide(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4);
+    drawWasherTopDown(ctx, tdCx, tdCy, tdR, filled);
+    drawWasherSide(ctx, dzStart+tdZW, ctop+2, sideZW-4, contentH-4, filled);
   }
 
   // Border
@@ -390,29 +392,35 @@ function drawLabel(canvas, cfg) {
 }
 
 // Top-down views
-function drawTopDown(ctx, cx, cy, r, head, drive) {
-  ctx.strokeStyle='black'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+function drawTopDown(ctx, cx, cy, r, head, drive, filled) {
+  if (filled) {
+    ctx.fillStyle='black';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='white';
+  } else {
+    ctx.strokeStyle='black'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  }
 
   if (head==='CAP') {
     ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.78,0,Math.PI*2); ctx.stroke();
-    drawDriveTopDown(ctx,cx,cy,r*0.42,drive);
+    drawDriveTopDown(ctx,cx,cy,r*0.42,drive,filled);
   } else if (head==='BTN') {
     ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r*0.70,0,Math.PI*2); ctx.stroke();
-    drawDriveTopDown(ctx,cx,cy,r*0.32,drive);
+    drawDriveTopDown(ctx,cx,cy,r*0.32,drive,filled);
   } else if (head==='CSK') {
     ctx.lineWidth=1;
     for (const f of [0.70,0.45]) { ctx.beginPath(); ctx.arc(cx,cy,r*f,0,Math.PI*2); ctx.stroke(); }
-    drawDriveTopDown(ctx,cx,cy,r*0.35,drive);
+    drawDriveTopDown(ctx,cx,cy,r*0.35,drive,filled);
   } else { // RCSK
     ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r*0.65,0,Math.PI*2); ctx.stroke();
     ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.42,0,Math.PI*2); ctx.stroke();
-    drawDriveTopDown(ctx,cx,cy,r*0.28,drive);
+    drawDriveTopDown(ctx,cx,cy,r*0.28,drive,filled);
   }
 }
 
-function drawDriveTopDown(ctx, cx, cy, r, drive) {
-  ctx.fillStyle='black';
+function drawDriveTopDown(ctx, cx, cy, r, drive, filled) {
+  ctx.fillStyle = filled ? 'white' : 'black';
   if (drive==='PH') {
     const lw = Math.max(3, r/3);
     ctx.fillRect(cx-lw/2, cy-r, lw, r*2);
@@ -429,54 +437,87 @@ function drawDriveTopDown(ctx, cx, cy, r, drive) {
 }
 
 // Side profiles
-function drawSideProfile(ctx, x0, y0, w, h, head) {
+function drawSideProfile(ctx, x0, y0, w, h, head, filled) {
   const cx = x0+w/2;
-  ctx.strokeStyle='black'; ctx.lineWidth=3;
   const sL=cx-w*0.15, sR=cx+w*0.15, sB=y0+h*0.88, tip=y0+h*0.96;
 
-  if (head==='CAP') {
-    const hL=cx-w*0.30,hR=cx+w*0.30,hT=y0+h*0.04,hB=y0+h*0.37;
-    ctx.strokeRect(hL,hT,hR-hL,hB-hT);
-    const ch=w*0.04;
-    ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(hL,hT+ch);ctx.lineTo(hL+ch,hT);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hR,hT+ch);ctx.lineTo(hR-ch,hT);ctx.stroke();
-    ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
-    drawThreads(ctx,sL,sR,hB+8,sB);
-    drawTip(ctx,sL,sR,sB,cx,tip);
-  } else if (head==='BTN') {
-    const dL=cx-w*0.40,dR=cx+w*0.40,base=y0+h*0.35,dT=y0+h*0.04;
-    ctx.beginPath();ctx.ellipse(cx,(dT+base+h*0.28)/2,(dR-dL)/2+w*0.02,(base+h*0.28-dT)/2,0,Math.PI+0.035,-0.035);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(dL,base);ctx.lineTo(dR,base);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sL,base);ctx.lineTo(sL,sB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sR,base);ctx.lineTo(sR,sB);ctx.stroke();
-    drawThreads(ctx,sL,sR,base+8,sB);
-    drawTip(ctx,sL,sR,sB,cx,tip);
-  } else if (head==='CSK') {
-    const hL=cx-w*0.42,hR=cx+w*0.42,hT=y0+h*0.16,hB=y0+h*0.38;
-    ctx.beginPath();ctx.moveTo(hL,hT);ctx.lineTo(hR,hT);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hL,hT);ctx.lineTo(sL,hB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hR,hT);ctx.lineTo(sR,hB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
-    drawThreads(ctx,sL,sR,hB+8,sB);
-    drawTip(ctx,sL,sR,sB,cx,tip);
-  } else { // RCSK
-    const hL=cx-w*0.42,hR=cx+w*0.42,asY=y0+h*0.22,hB=y0+h*0.40,dA=y0+h*0.04;
-    ctx.beginPath();ctx.ellipse(cx,(dA+asY+h*0.16)/2,(hR-hL)/2+w*0.02,(asY+h*0.16-dA)/2,0,Math.PI+0.035,-0.035);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hL,asY);ctx.lineTo(sL,hB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hR,asY);ctx.lineTo(sR,hB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
-    drawThreads(ctx,sL,sR,hB+8,sB);
-    drawTip(ctx,sL,sR,sB,cx,tip);
+  if (filled) {
+    ctx.fillStyle='black';
+    let threadTop;
+    ctx.beginPath();
+    if (head==='CAP') {
+      const hL=cx-w*0.30,hR=cx+w*0.30,hT=y0+h*0.04,hB=y0+h*0.37,ch=w*0.04;
+      threadTop=hB+8;
+      ctx.moveTo(hL+ch,hT); ctx.lineTo(hR-ch,hT); ctx.lineTo(hR,hT+ch);
+      ctx.lineTo(hR,hB); ctx.lineTo(sR,hB); ctx.lineTo(sR,sB);
+      ctx.lineTo(cx,tip); ctx.lineTo(sL,sB); ctx.lineTo(sL,hB);
+      ctx.lineTo(hL,hB); ctx.lineTo(hL,hT+ch);
+    } else if (head==='BTN') {
+      const dL=cx-w*0.40,dR=cx+w*0.40,base=y0+h*0.35,dT=y0+h*0.04;
+      threadTop=base+8;
+      ctx.ellipse(cx,(dT+base+h*0.28)/2,(dR-dL)/2+w*0.02,(base+h*0.28-dT)/2,0,Math.PI+0.035,-0.035);
+      ctx.lineTo(sR,base); ctx.lineTo(sR,sB);
+      ctx.lineTo(cx,tip); ctx.lineTo(sL,sB); ctx.lineTo(sL,base);
+    } else if (head==='CSK') {
+      const hL=cx-w*0.42,hR=cx+w*0.42,hT=y0+h*0.16,hB=y0+h*0.38;
+      threadTop=hB+8;
+      ctx.moveTo(hL,hT); ctx.lineTo(hR,hT); ctx.lineTo(sR,hB);
+      ctx.lineTo(sR,sB); ctx.lineTo(cx,tip); ctx.lineTo(sL,sB); ctx.lineTo(sL,hB);
+    } else { // RCSK
+      const hL=cx-w*0.42,hR=cx+w*0.42,asY=y0+h*0.22,hB=y0+h*0.40,dA=y0+h*0.04;
+      threadTop=hB+8;
+      ctx.ellipse(cx,(dA+asY+h*0.16)/2,(hR-hL)/2+w*0.02,(asY+h*0.16-dA)/2,0,Math.PI+0.035,-0.035);
+      ctx.lineTo(sR,hB); ctx.lineTo(sR,sB);
+      ctx.lineTo(cx,tip); ctx.lineTo(sL,sB); ctx.lineTo(sL,hB);
+    }
+    ctx.closePath(); ctx.fill();
+    drawThreads(ctx,sL,sR,threadTop,sB,true);
+  } else {
+    ctx.strokeStyle='black'; ctx.lineWidth=3;
+    if (head==='CAP') {
+      const hL=cx-w*0.30,hR=cx+w*0.30,hT=y0+h*0.04,hB=y0+h*0.37;
+      ctx.strokeRect(hL,hT,hR-hL,hB-hT);
+      const ch=w*0.04;
+      ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(hL,hT+ch);ctx.lineTo(hL+ch,hT);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(hR,hT+ch);ctx.lineTo(hR-ch,hT);ctx.stroke();
+      ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
+      drawThreads(ctx,sL,sR,hB+8,sB,false);
+      drawTip(ctx,sL,sR,sB,cx,tip);
+    } else if (head==='BTN') {
+      const dL=cx-w*0.40,dR=cx+w*0.40,base=y0+h*0.35,dT=y0+h*0.04;
+      ctx.beginPath();ctx.ellipse(cx,(dT+base+h*0.28)/2,(dR-dL)/2+w*0.02,(base+h*0.28-dT)/2,0,Math.PI+0.035,-0.035);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(dL,base);ctx.lineTo(dR,base);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sL,base);ctx.lineTo(sL,sB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sR,base);ctx.lineTo(sR,sB);ctx.stroke();
+      drawThreads(ctx,sL,sR,base+8,sB,false);
+      drawTip(ctx,sL,sR,sB,cx,tip);
+    } else if (head==='CSK') {
+      const hL=cx-w*0.42,hR=cx+w*0.42,hT=y0+h*0.16,hB=y0+h*0.38;
+      ctx.beginPath();ctx.moveTo(hL,hT);ctx.lineTo(hR,hT);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(hL,hT);ctx.lineTo(sL,hB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(hR,hT);ctx.lineTo(sR,hB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
+      drawThreads(ctx,sL,sR,hB+8,sB,false);
+      drawTip(ctx,sL,sR,sB,cx,tip);
+    } else { // RCSK
+      const hL=cx-w*0.42,hR=cx+w*0.42,asY=y0+h*0.22,hB=y0+h*0.40,dA=y0+h*0.04;
+      ctx.beginPath();ctx.ellipse(cx,(dA+asY+h*0.16)/2,(hR-hL)/2+w*0.02,(asY+h*0.16-dA)/2,0,Math.PI+0.035,-0.035);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(hL,asY);ctx.lineTo(sL,hB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(hR,asY);ctx.lineTo(sR,hB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sL,hB);ctx.lineTo(sL,sB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sR,hB);ctx.lineTo(sR,sB);ctx.stroke();
+      drawThreads(ctx,sL,sR,hB+8,sB,false);
+      drawTip(ctx,sL,sR,sB,cx,tip);
+    }
   }
 }
 
-function drawThreads(ctx, l, r, top, bot) {
-  ctx.lineWidth=1; ctx.strokeStyle='black';
+function drawThreads(ctx, l, r, top, bot, filled) {
+  ctx.lineWidth=1; ctx.strokeStyle = filled ? 'white' : 'black';
   for (let y=top; y<bot-2; y+=7) {
     ctx.beginPath(); ctx.moveTo(l+2,y); ctx.lineTo(r-2,y+1); ctx.stroke();
   }
@@ -489,46 +530,87 @@ function drawTip(ctx, l, r, bot, cx, tip) {
   ctx.beginPath(); ctx.moveTo(r,bot); ctx.lineTo(cx,tip); ctx.stroke();
 }
 
-function drawNutTopDown(ctx, cx, cy, r) {
-  ctx.strokeStyle='black'; ctx.lineWidth=3;
-  ctx.beginPath();
-  for (let i=0;i<6;i++) {
-    const a=60*i*Math.PI/180;
-    const px=cx+r*Math.cos(a),py=cy+r*Math.sin(a);
-    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+function drawNutTopDown(ctx, cx, cy, r, filled) {
+  if (filled) {
+    ctx.fillStyle='black';
+    ctx.beginPath();
+    for (let i=0;i<6;i++) {
+      const a=60*i*Math.PI/180;
+      const px=cx+r*Math.cos(a),py=cy+r*Math.sin(a);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='white';
+    ctx.beginPath(); ctx.arc(cx,cy,r*0.38,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.strokeStyle='black'; ctx.lineWidth=3;
+    ctx.beginPath();
+    for (let i=0;i<6;i++) {
+      const a=60*i*Math.PI/180;
+      const px=cx+r*Math.cos(a),py=cy+r*Math.sin(a);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.38,0,Math.PI*2); ctx.stroke();
   }
-  ctx.closePath(); ctx.stroke();
-  ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.38,0,Math.PI*2); ctx.stroke();
 }
 
-function drawNutSide(ctx, x0, y0, w, h) {
+function drawNutSide(ctx, x0, y0, w, h, filled) {
   const cx=x0+w/2, hw=w*0.34, hh=h*0.22, ch=w*0.06;
   const top=y0+h*0.28, bot=top+2*hh;
-  ctx.strokeStyle='black'; ctx.lineWidth=3;
-  ctx.strokeRect(cx-hw,top+ch,hw*2,bot-top-ch);
-  ctx.beginPath();ctx.moveTo(cx-hw,top+ch);ctx.lineTo(cx-hw+ch,top);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-hw+ch,top);ctx.lineTo(cx+hw-ch,top);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+hw-ch,top);ctx.lineTo(cx+hw,top+ch);ctx.stroke();
-  ctx.lineWidth=1;
-  const pw=w*0.12;
-  ctx.beginPath();ctx.moveTo(cx-pw,top);ctx.lineTo(cx-pw,bot);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+pw,top);ctx.lineTo(cx+pw,bot);ctx.stroke();
+  if (filled) {
+    ctx.fillStyle='black';
+    ctx.beginPath();
+    ctx.moveTo(cx-hw+ch,top); ctx.lineTo(cx+hw-ch,top); ctx.lineTo(cx+hw,top+ch);
+    ctx.lineTo(cx+hw,bot); ctx.lineTo(cx-hw,bot); ctx.lineTo(cx-hw,top+ch);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='white'; ctx.lineWidth=1;
+    const pw=w*0.12;
+    ctx.beginPath();ctx.moveTo(cx-pw,top);ctx.lineTo(cx-pw,bot);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+pw,top);ctx.lineTo(cx+pw,bot);ctx.stroke();
+  } else {
+    ctx.strokeStyle='black'; ctx.lineWidth=3;
+    ctx.strokeRect(cx-hw,top+ch,hw*2,bot-top-ch);
+    ctx.beginPath();ctx.moveTo(cx-hw,top+ch);ctx.lineTo(cx-hw+ch,top);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-hw+ch,top);ctx.lineTo(cx+hw-ch,top);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+hw-ch,top);ctx.lineTo(cx+hw,top+ch);ctx.stroke();
+    ctx.lineWidth=1;
+    const pw=w*0.12;
+    ctx.beginPath();ctx.moveTo(cx-pw,top);ctx.lineTo(cx-pw,bot);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+pw,top);ctx.lineTo(cx+pw,bot);ctx.stroke();
+  }
 }
 
-function drawWasherTopDown(ctx, cx, cy, r) {
-  ctx.strokeStyle='black'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
-  ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.40,0,Math.PI*2); ctx.stroke();
+function drawWasherTopDown(ctx, cx, cy, r, filled) {
+  if (filled) {
+    ctx.fillStyle='black';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='white';
+    ctx.beginPath(); ctx.arc(cx,cy,r*0.40,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.strokeStyle='black'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+    ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r*0.40,0,Math.PI*2); ctx.stroke();
+  }
 }
 
-function drawWasherSide(ctx, x0, y0, w, h) {
+function drawWasherSide(ctx, x0, y0, w, h, filled) {
   const cx=x0+w/2, hw=w*0.40, hh=h*0.05, cy=y0+h/2;
-  ctx.strokeStyle='black'; ctx.lineWidth=3;
-  ctx.strokeRect(cx-hw,cy-hh,hw*2,hh*2);
-  ctx.lineWidth=1;
-  const pw=w*0.14;
-  ctx.beginPath();ctx.moveTo(cx-pw,cy-hh);ctx.lineTo(cx-pw,cy+hh);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+pw,cy-hh);ctx.lineTo(cx+pw,cy+hh);ctx.stroke();
+  if (filled) {
+    ctx.fillStyle='black';
+    ctx.fillRect(cx-hw,cy-hh,hw*2,hh*2);
+    ctx.strokeStyle='white'; ctx.lineWidth=1;
+    const pw=w*0.14;
+    ctx.beginPath();ctx.moveTo(cx-pw,cy-hh);ctx.lineTo(cx-pw,cy+hh);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+pw,cy-hh);ctx.lineTo(cx+pw,cy+hh);ctx.stroke();
+  } else {
+    ctx.strokeStyle='black'; ctx.lineWidth=3;
+    ctx.strokeRect(cx-hw,cy-hh,hw*2,hh*2);
+    ctx.lineWidth=1;
+    const pw=w*0.14;
+    ctx.beginPath();ctx.moveTo(cx-pw,cy-hh);ctx.lineTo(cx-pw,cy+hh);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+pw,cy-hh);ctx.lineTo(cx+pw,cy+hh);ctx.stroke();
+  }
 }
 
 
@@ -728,7 +810,7 @@ function closePrintModal() { document.getElementById('printModal').classList.rem
 function printSheets() {
   const canvases = document.querySelectorAll('#sheetContainer canvas');
   const win = window.open('','_blank');
-  win.document.write('<html><head><title>Screw Labels</title><style>@page{size:A4;margin:0}body{margin:0}img{width:210mm;height:297mm;page-break-after:always}</style></head><body>');
+  win.document.write('<html><head><title>Screw Labels</title><style>@page{size:letter;margin:0}body{margin:0}img{width:8.5in;height:11in;page-break-after:always}</style></head><body>');
   canvases.forEach(c => { win.document.write(`<img src="${c.toDataURL('image/png')}">`); });
   win.document.write('</body></html>');
   win.document.close();
@@ -764,10 +846,11 @@ function initQuickAdd() {
   const qaSize = document.getElementById('qaSize');
   SIZES.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=s; qaSize.appendChild(o); });
   qaSize.onchange = () => {
-    const qaLen = document.getElementById('qaLength');
-    qaLen.innerHTML = '<option value="">Length</option>';
+    const dl = document.getElementById('qaLengthSuggestions');
+    dl.innerHTML = '';
     const lengths = SIZE_LENGTHS[qaSize.value] || [];
-    lengths.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l+'mm'; qaLen.appendChild(o); });
+    lengths.forEach(l => { const o = document.createElement('option'); o.value=l; dl.appendChild(o); });
+    document.getElementById('qaLength').value = '';
   };
   const qaHead = document.getElementById('qaHead');
   Object.entries(HEADS).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v.full}`; qaHead.appendChild(o); });
@@ -798,6 +881,17 @@ function quickAdd() {
   } else if (len && head && drive) {
     const cfg = {cat:'screw', size, length:parseInt(len), head, drive, material:mat};
     const key = getLabelKey(cfg);
+    if (!allLabels.some(l => getLabelKey(l) === key)) {
+      allLabels.push(cfg);
+      // Persist custom label to localStorage
+      const custom = JSON.parse(localStorage.getItem('customLabels') || '[]');
+      if (!custom.some(l => getLabelKey(l) === key)) {
+        custom.push(cfg);
+        localStorage.setItem('customLabels', JSON.stringify(custom));
+      }
+    }
+    // Ensure custom length is in the filter
+    if (!filters.len.has(cfg.length)) filters.len.add(cfg.length);
     selectedLabels.set(key, {cfg, qty});
   } else {
     alert('For screws, please select Length, Head, and Drive.'); return;
@@ -824,6 +918,20 @@ function init() {
   });
 
   buildAllLabels();
+
+  // Load custom labels from localStorage
+  const customLabels = JSON.parse(localStorage.getItem('customLabels') || '[]');
+  for (const cfg of customLabels) {
+    const key = getLabelKey(cfg);
+    if (!allLabels.some(l => getLabelKey(l) === key)) {
+      allLabels.push(cfg);
+    }
+    // Ensure custom lengths are included in the length filter
+    if (cfg.cat === 'screw' && !filters.len.has(cfg.length)) {
+      filters.len.add(cfg.length);
+    }
+  }
+
   initQuickAdd();
 
   // Start with minimal filter to keep initial load fast
