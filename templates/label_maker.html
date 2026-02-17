@@ -221,8 +221,11 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
 
   <!-- Quick Add -->
   <div class="quick-add">
-    <h3>⚡ Quick Add Label</h3>
-    <div class="quick-add-row">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+      <h3 style="margin-bottom:0;">⚡ Quick Add Label</h3>
+      <button class="btn btn-secondary btn-sm" id="modeBtn" onclick="toggleQuickAddMode()">Dual Mode</button>
+    </div>
+    <div class="quick-add-row" id="qaSingleRow">
       <select class="quick-select" id="qaSize"><option value="">Size</option></select>
       <input type="number" class="qty-input" id="qaLength" placeholder="mm" min="1" max="200" list="qaLengthSuggestions" style="width:70px">
       <datalist id="qaLengthSuggestions"></datalist>
@@ -233,6 +236,34 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
         Qty: <input type="number" class="qty-input" id="qaQty" value="1" min="1" max="20">
       </label>
       <button class="btn btn-primary btn-sm" onclick="quickAdd()">+ Add</button>
+    </div>
+    <div id="qaDualRows" style="display:none">
+      <div class="quick-add-row" style="margin-bottom:0.3rem;">
+        <span style="font-size:0.75rem;font-weight:700;color:var(--text-dim);min-width:18px;">L:</span>
+        <select class="quick-select" id="qaLCat" onchange="updateDualCatVisibility('qaL')"><option value="screw">Screw</option><option value="nut">Nut</option><option value="washer">Washer</option></select>
+        <select class="quick-select" id="qaLSize"><option value="">Size</option></select>
+        <input type="number" class="qty-input" id="qaLLength" placeholder="mm" min="1" max="200" list="qaLLengthSuggestions" style="width:70px">
+        <datalist id="qaLLengthSuggestions"></datalist>
+        <select class="quick-select" id="qaLHead"><option value="">Head</option></select>
+        <select class="quick-select" id="qaLDrive"><option value="">Drive</option></select>
+        <select class="quick-select" id="qaLMat"><option value="">Material</option></select>
+      </div>
+      <div class="quick-add-row" style="margin-bottom:0.3rem;">
+        <span style="font-size:0.75rem;font-weight:700;color:var(--text-dim);min-width:18px;">R:</span>
+        <select class="quick-select" id="qaRCat" onchange="updateDualCatVisibility('qaR')"><option value="screw">Screw</option><option value="nut">Nut</option><option value="washer">Washer</option></select>
+        <select class="quick-select" id="qaRSize"><option value="">Size</option></select>
+        <input type="number" class="qty-input" id="qaRLength" placeholder="mm" min="1" max="200" list="qaRLengthSuggestions" style="width:70px">
+        <datalist id="qaRLengthSuggestions"></datalist>
+        <select class="quick-select" id="qaRHead"><option value="">Head</option></select>
+        <select class="quick-select" id="qaRDrive"><option value="">Drive</option></select>
+        <select class="quick-select" id="qaRMat"><option value="">Material</option></select>
+      </div>
+      <div class="quick-add-row" style="justify-content:flex-end;">
+        <label style="font-size:0.72rem;color:var(--text-muted);display:flex;align-items:center;gap:0.3rem;">
+          Qty: <input type="number" class="qty-input" id="qaDualQty" value="1" min="1" max="20">
+        </label>
+        <button class="btn btn-primary btn-sm" onclick="quickAdd()">+ Add</button>
+      </div>
     </div>
   </div>
 
@@ -294,12 +325,14 @@ let filters = { cat:new Set(['screw','nut','washer']), size:new Set(SIZES), head
   drive:new Set(['PH','HX']), mat:new Set(MATS), len:new Set(ALL_LENGTHS) };
 let selectedLabels = new Map(); // key -> {config, qty}
 let allLabels = []; // generated label configs
+let quickAddMode = 'single'; // 'single' or 'dual'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CANVAS LABEL DRAWING (matches the Python output exactly)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function drawLabel(canvas, cfg) {
+  if (cfg.cat === 'dual') { drawDualLabel(canvas, cfg); return; }
   canvas.width = LW; canvas.height = LH;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = 'white';
@@ -335,8 +368,16 @@ function drawLabel(canvas, cfg) {
     ctx.font = '22px "DejaVu Sans", sans-serif';
     ctx.fillText('Socket: ' + DRIVES[cfg.drive], tx, ctop + 104);
 
-    // Line 4: Head: Cap Head
-    ctx.fillText('Head: ' + HEADS[cfg.head].full, tx, ctop + 126);
+    // Line 4: Head: Cap Head (with overflow protection)
+    const headText = 'Head: ' + HEADS[cfg.head].full;
+    ctx.font = '22px "DejaVu Sans", sans-serif';
+    if (ctx.measureText(headText).width > tzW - tx - 8) {
+      ctx.font = '18px "DejaVu Sans", sans-serif';
+      if (ctx.measureText(headText).width > tzW - tx - 8) {
+        ctx.font = '16px "DejaVu Sans", sans-serif';
+      }
+    }
+    ctx.fillText(headText, tx, ctop + 126);
 
     // Line 5: Material
     ctx.font = 'bold 22px "DejaVu Sans", sans-serif';
@@ -613,12 +654,109 @@ function drawWasherSide(ctx, x0, y0, w, h, filled) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DUAL LABEL DRAWING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function drawDualLabel(canvas, cfg) {
+  canvas.width = LW; canvas.height = LH;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, LW, LH);
+
+  const halfW = Math.floor(LW / 2);
+
+  // Draw each half
+  drawDualHalf(ctx, cfg.left, 0, halfW);
+  drawDualHalf(ctx, cfg.right, halfW, halfW);
+
+  // Center divider — bold dashed line
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 4]);
+  ctx.beginPath();
+  ctx.moveTo(halfW, 4);
+  ctx.lineTo(halfW, LH - 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Border
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, LW - 2, LH - 2);
+}
+
+function drawDualHalf(ctx, side, x0, w) {
+  // Bars at top
+  const barCount = SIZE_BARS[side.size];
+  const barH = 10, barGap = 3;
+  const barAreaW = w - 8;
+  const barW = Math.floor((barAreaW - (barCount - 1) * barGap) / barCount);
+  ctx.fillStyle = 'black';
+  for (let i = 0; i < barCount; i++) {
+    ctx.fillRect(x0 + 4 + i * (barW + barGap), 3, barW, barH);
+  }
+
+  const ctop = 3 + barH + 2;
+  const tx = x0 + 6;
+  const textZoneW = Math.floor(w * 0.58);
+  const maxTextW = textZoneW - 10;
+  ctx.fillStyle = 'black';
+
+  if (side.cat === 'screw') {
+    // Size x Length
+    ctx.font = 'bold 34px "DejaVu Sans", sans-serif';
+    const sizeText = side.size + ' x ' + side.length;
+    if (ctx.measureText(sizeText).width > maxTextW) {
+      ctx.font = 'bold 28px "DejaVu Sans", sans-serif';
+    }
+    ctx.fillText(sizeText, tx, ctop + 30);
+
+    // DRIVE HEAD
+    ctx.font = 'bold 20px "DejaVu Sans", sans-serif';
+    ctx.fillText((DRIVES_ABBR[side.drive] || side.drive) + ' ' + side.head, tx, ctop + 54);
+
+    // Material
+    ctx.font = 'bold 16px "DejaVu Sans", sans-serif';
+    ctx.fillText(side.material, tx, ctop + 76);
+  } else {
+    // Nut or Washer
+    ctx.font = 'bold 34px "DejaVu Sans", sans-serif';
+    ctx.fillText(side.size, tx, ctop + 30);
+
+    const hwAbbr = side.cat === 'nut' ? 'NUT' : 'WASHER';
+    ctx.font = 'bold 20px "DejaVu Sans", sans-serif';
+    ctx.fillText(hwAbbr, tx, ctop + 54);
+
+    ctx.font = 'bold 16px "DejaVu Sans", sans-serif';
+    ctx.fillText(side.material, tx, ctop + 76);
+  }
+
+  // Top-down drawing in the right portion of the half
+  const dzStart = x0 + textZoneW;
+  const dzW = w - textZoneW - 4;
+  const contentH = LH - ctop - 6;
+  const tdCx = dzStart + dzW / 2;
+  const tdCy = ctop + contentH / 2;
+  const tdR = Math.min(dzW * 0.42, contentH * 0.42);
+  const filled = side.material === 'Black';
+
+  if (side.cat === 'screw') {
+    drawTopDown(ctx, tdCx, tdCy, tdR, side.head, side.drive, filled);
+  } else if (side.cat === 'nut') {
+    drawNutTopDown(ctx, tdCx, tdCy, tdR, filled);
+  } else {
+    drawWasherTopDown(ctx, tdCx, tdCy, tdR, filled);
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LABEL GENERATION & FILTERING
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getLabelKey(cfg) {
+  if (cfg.cat==='dual') return 'DUAL_' + getLabelKey(cfg.left) + '__' + getLabelKey(cfg.right);
   if (cfg.cat==='screw') return `${cfg.size}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.material}`;
   return `${cfg.size}_${cfg.cat}_${cfg.material}`;
 }
@@ -645,6 +783,7 @@ function buildAllLabels() {
 }
 
 function matchesFilters(cfg) {
+  if (cfg.cat === 'dual') return matchesFilters(cfg.left) || matchesFilters(cfg.right);
   if (!filters.cat.has(cfg.cat)) return false;
   if (!filters.size.has(cfg.size)) return false;
   if (!filters.mat.has(cfg.material)) return false;
@@ -842,25 +981,89 @@ function downloadSelected() {
 // QUICK ADD
 // ═══════════════════════════════════════════════════════════════════════════
 
-function initQuickAdd() {
-  const qaSize = document.getElementById('qaSize');
-  SIZES.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=s; qaSize.appendChild(o); });
-  qaSize.onchange = () => {
-    const dl = document.getElementById('qaLengthSuggestions');
+function populateSideSelects(prefix) {
+  const sizeEl = document.getElementById(prefix + 'Size');
+  SIZES.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=s; sizeEl.appendChild(o); });
+  sizeEl.onchange = () => {
+    const dl = document.getElementById(prefix + 'LengthSuggestions');
     dl.innerHTML = '';
-    const lengths = SIZE_LENGTHS[qaSize.value] || [];
+    const lengths = SIZE_LENGTHS[sizeEl.value] || [];
     lengths.forEach(l => { const o = document.createElement('option'); o.value=l; dl.appendChild(o); });
-    document.getElementById('qaLength').value = '';
+    document.getElementById(prefix + 'Length').value = '';
   };
-  const qaHead = document.getElementById('qaHead');
-  Object.entries(HEADS).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v.full}`; qaHead.appendChild(o); });
-  const qaDrive = document.getElementById('qaDrive');
-  Object.entries(DRIVES).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v}`; qaDrive.appendChild(o); });
-  const qaMat = document.getElementById('qaMat');
-  MATS.forEach(m => { const o = document.createElement('option'); o.value=m; o.textContent=m; qaMat.appendChild(o); });
+  const headEl = document.getElementById(prefix + 'Head');
+  Object.entries(HEADS).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v.full}`; headEl.appendChild(o); });
+  const driveEl = document.getElementById(prefix + 'Drive');
+  Object.entries(DRIVES).forEach(([k,v]) => { const o = document.createElement('option'); o.value=k; o.textContent=`${k} - ${v}`; driveEl.appendChild(o); });
+  const matEl = document.getElementById(prefix + 'Mat');
+  MATS.forEach(m => { const o = document.createElement('option'); o.value=m; o.textContent=m; matEl.appendChild(o); });
+}
+
+function initQuickAdd() {
+  populateSideSelects('qa');
+  populateSideSelects('qaL');
+  populateSideSelects('qaR');
+}
+
+function buildSideConfig(prefix) {
+  const catEl = document.getElementById(prefix + 'Cat');
+  const cat = catEl ? catEl.value : 'screw';
+  const size = document.getElementById(prefix + 'Size').value;
+  const mat = document.getElementById(prefix + 'Mat').value;
+  if (!size || !mat) return null;
+  if (cat === 'screw') {
+    const len = document.getElementById(prefix + 'Length').value;
+    const head = document.getElementById(prefix + 'Head').value;
+    const drive = document.getElementById(prefix + 'Drive').value;
+    if (!len || !head || !drive) return null;
+    return { cat:'screw', size, length:parseInt(len), head, drive, material:mat };
+  }
+  return { cat, size, material:mat };
+}
+
+function toggleQuickAddMode() {
+  quickAddMode = quickAddMode === 'single' ? 'dual' : 'single';
+  document.getElementById('qaSingleRow').style.display = quickAddMode === 'single' ? 'flex' : 'none';
+  document.getElementById('qaDualRows').style.display = quickAddMode === 'dual' ? 'block' : 'none';
+  const btn = document.getElementById('modeBtn');
+  btn.textContent = quickAddMode === 'single' ? 'Dual Mode' : 'Single Mode';
+  btn.style.background = quickAddMode === 'dual' ? 'var(--accent-dim)' : '';
+  btn.style.color = quickAddMode === 'dual' ? 'var(--accent)' : '';
+  btn.style.borderColor = quickAddMode === 'dual' ? 'var(--accent-border)' : '';
+}
+
+function updateDualCatVisibility(prefix) {
+  const cat = document.getElementById(prefix + 'Cat').value;
+  const isScrew = cat === 'screw';
+  document.getElementById(prefix + 'Length').style.display = isScrew ? '' : 'none';
+  document.getElementById(prefix + 'Head').style.display = isScrew ? '' : 'none';
+  document.getElementById(prefix + 'Drive').style.display = isScrew ? '' : 'none';
 }
 
 function quickAdd() {
+  if (quickAddMode === 'dual') {
+    const left = buildSideConfig('qaL');
+    const right = buildSideConfig('qaR');
+    if (!left || !right) { alert('Please fill all required fields for both sides'); return; }
+    const qty = parseInt(document.getElementById('qaDualQty').value) || 1;
+    const cfg = { cat:'dual', left, right };
+    const key = getLabelKey(cfg);
+    if (!allLabels.some(l => getLabelKey(l) === key)) {
+      allLabels.push(cfg);
+      const custom = JSON.parse(localStorage.getItem('customLabels') || '[]');
+      if (!custom.some(l => getLabelKey(l) === key)) {
+        custom.push(cfg);
+        localStorage.setItem('customLabels', JSON.stringify(custom));
+      }
+    }
+    if (left.cat === 'screw' && !filters.len.has(left.length)) filters.len.add(left.length);
+    if (right.cat === 'screw' && !filters.len.has(right.length)) filters.len.add(right.length);
+    selectedLabels.set(key, { cfg, qty });
+    applyFilters();
+    updateSelectionUI();
+    return;
+  }
+
   const size = document.getElementById('qaSize').value;
   const len = document.getElementById('qaLength').value;
   const head = document.getElementById('qaHead').value;
@@ -927,7 +1130,10 @@ function init() {
       allLabels.push(cfg);
     }
     // Ensure custom lengths are included in the length filter
-    if (cfg.cat === 'screw' && !filters.len.has(cfg.length)) {
+    if (cfg.cat === 'dual') {
+      if (cfg.left.cat === 'screw' && !filters.len.has(cfg.left.length)) filters.len.add(cfg.left.length);
+      if (cfg.right.cat === 'screw' && !filters.len.has(cfg.right.length)) filters.len.add(cfg.right.length);
+    } else if (cfg.cat === 'screw' && !filters.len.has(cfg.length)) {
       filters.len.add(cfg.length);
     }
   }
