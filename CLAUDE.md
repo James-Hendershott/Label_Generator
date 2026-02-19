@@ -20,25 +20,9 @@ python run.py
 
 App runs on `http://localhost:5000`.
 
-## Architecture
+There are no tests, linting, or build steps configured. No CI/CD pipeline exists.
 
-### File Structure
-```
-Label_Generator/
-├── run.py                  # Flask entry point
-├── app/
-│   ├── __init__.py         # App factory (create_app)
-│   └── routes.py           # Route definitions
-├── templates/
-│   ├── index.html          # Landing page with links to tools
-│   ├── label_maker.html    # Screw label maker (self-contained HTML)
-│   └── color_code.html     # Color code reference (self-contained HTML)
-├── static/
-│   └── output/             # Generated label output (gitignored)
-└── assets/
-    ├── screw_labels_all_pages.pdf
-    └── sheet_preview.png
-```
+## Architecture
 
 ### Routes
 
@@ -48,28 +32,33 @@ Label_Generator/
 | `/labels` | `label_maker.html` | Interactive label maker |
 | `/color-code` | `color_code.html` | M2-M6 color code reference chart |
 
+Flask app factory is in `app/__init__.py`, routes in `app/routes.py` (Blueprint named `main`). Entry point is `run.py`.
+
 ### Key Design Decisions
 
-- **HTML files are self-contained**: Both `label_maker.html` and `color_code.html` include all CSS/JS inline. Flask serves them unchanged — no Jinja templating needed.
-- **No database yet**: Labels are generated client-side in the browser. Server-side generation is a backlog item.
-- **static/output/ is gitignored**: Generated label PNGs go here but aren't tracked in version control.
+- **HTML files are self-contained**: `label_maker.html` and `color_code.html` include all CSS/JS inline (each is thousands of lines). Flask serves them unchanged — no Jinja templating is used. When modifying these files, test that inline JS/CSS still works since there's no build step.
+- **No database**: Labels are generated client-side in the browser using Canvas API.
 - **Custom labels use localStorage**: Labels created with non-predefined size/length combos are saved to `localStorage` under the key `customLabels` and reloaded on init.
+- **static/output/ is gitignored**: Generated label PNGs go here but aren't tracked.
+- **Google Fonts loaded via CDN**: `label_maker.html` uses Outfit + JetBrains Mono; `color_code.html` uses DM Sans + JetBrains Mono.
 
-### Label Layout (40×16mm @ 300 DPI = 472×189px)
+### Label Layout (40x16mm @ 300 DPI = 472x189px)
 
 - **Top bars**: Full-width bars spanning the label (count = M size: 1=M2, 2=M2.5, ... 6=M6)
-- **Line 1**: `M3 x 50` — size × length (62px bold, no "mm")
+- **Line 1**: `M3 x 50` — size x length (62px bold, no "mm")
 - **Line 2**: `HEX CAP` — drive abbreviation + head abbreviation (32px bold)
 - **Line 3**: `Socket: Hex` — full drive name (22px)
 - **Line 4**: `Head: Cap Head` — full head name (22px)
 - **Line 5**: `Black` — material (22px bold)
 - **Right side**: Top-down and side profile drawings (52/48% split)
 - **Material styling**: Black = solid filled icons with white details; Stainless = outline icons
-- **Print**: US Letter (8.5×11") at 300 DPI
+- **Print**: US Letter (8.5x11") at 300 DPI
 
-## Development Notes
+### preview_label.py
 
-- The original HTML files came from Unraid at `/mnt/user/ShottsBox/Projects/Tool_Box_Organizer/Labels/`
-- `individual_labels/` directory (~1700+ PNGs) is not included in the project — it's generated build output
-- When modifying HTML files, test that inline JS/CSS still works since there's no build step
-- `preview_label.py` generates a sample PNG for label layout prototyping (not part of the app)
+Standalone Pillow script for prototyping label layout as PNG. Requires `Pillow` (not in `requirements.txt` — install separately with `pip install Pillow`). Output goes to `label_preview.png` in project root.
+
+## Project Tracking
+
+- `BACKLOG.md` — planned features and known bugs
+- `CHANGELOG.md` — version history (current: 0.2.0), follows Keep a Changelog format
