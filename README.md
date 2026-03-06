@@ -1,107 +1,24 @@
-# Label Generator
+# Label_Generator
 
-> Flask-based web application for creating and printing screw/fastener labels for toolbox organizers.
+A Flask web app that generates printable screw and fastener labels for toolbox organizers. I built this because I needed it.
 
-![Python](https://img.shields.io/badge/python-3.8+-blue)
-![Flask](https://img.shields.io/badge/flask-3.0-green)
-![License](https://img.shields.io/badge/license-MIT-blue)
+## What it does
 
-## Features
+- Interactive label maker for metric screws (M2 through M6)
+- Each label shows: M-size indicator bars, size x length, drive type, head type, material, and a profile drawing
+- Color code reference chart for quick identification
+- Custom label creation with localStorage persistence
+- Print-ready output at 300 DPI, formatted for US Letter paper
 
-- **Interactive Label Maker**: Filter, select, and print labels for metric screws (M2-M6)
-- **Color Code Reference**: Visual chart showing the color coding system for screw sizes
-- **Custom Labels**: Create labels for non-standard size/length combinations (saved to localStorage)
-- **Print-Ready Output**: Optimized for US Letter (8.5×11") at 300 DPI
-- **Self-Contained**: Each tool includes all CSS/JS inline - no build step required
+## Tech
 
-## Screenshots
+- **Backend:** Python, Flask, app factory pattern
+- **Frontend:** HTML, CSS, JavaScript, Canvas API
 
-![Label Preview](label_preview.png)
+## Why this exists
 
-## Label Layout
+I have a toolbox with metric screws sorted into compartments. I needed labels that would tell me at a glance what is in each slot — not just "M4 x 10" but the drive type, head type, and material too. Nothing I found online did exactly what I wanted, so I made this.
 
-Each label (40×16mm @ 300 DPI = 472×189px) includes:
-- Top bars indicating M size (1 bar = M2, 2 bars = M2.5, ... 6 bars = M6)
-- Size × Length (e.g., `M3 x 50`)
-- Drive type and head type
-- Material (Black or Stainless with appropriate styling)
-- Top-down and side profile drawings
+## Honesty
 
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/James-Hendershott/Label_Generator.git
-cd Label_Generator
-
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# .venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-python run.py
-```
-
-The app runs on `http://localhost:5000`.
-
-## Project Structure
-
-```
-Label_Generator/
-├── run.py                  # Flask entry point
-├── app/
-│   ├── __init__.py         # App factory
-│   └── routes.py           # Route definitions
-├── templates/
-│   ├── index.html          # Landing page
-│   ├── label_maker.html    # Interactive label maker
-│   └── color_code.html     # Color code reference chart
-├── static/
-│   └── output/             # Generated labels (gitignored)
-├── assets/                 # PDF exports and previews
-└── preview_label.py        # Label layout prototyping script
-```
-
-## Routes
-
-| Route | Description |
-|-------|-------------|
-| `/` | Landing page with links to tools |
-| `/labels` | Interactive label maker |
-| `/color-code` | M2-M6 color code reference |
-
-## Tech Stack
-
-- **Backend**: Python, Flask
-- **Frontend**: Vanilla HTML/CSS/JavaScript (self-contained)
-- **Label Generation**: Canvas API (browser-side)
-
-## Next Steps / Roadmap
-
-### High Priority
-- [ ] **Server-side label generation** - Replace browser canvas with Pillow/ReportLab for consistent output
-- [ ] **API endpoint** - `/api/generate-label` for on-demand label creation
-- [ ] **Batch export** - Generate multiple labels as PDF in one action
-
-### Medium Priority
-- [ ] **Database integration** - Track inventory and label print history
-- [ ] **Label templates** - Save/load custom label configurations
-- [ ] **QR code support** - Add QR codes linking to inventory system
-
-### Low Priority
-- [ ] Extract inline CSS/JS to separate static files
-- [ ] Add dark/light theme toggle
-- [ ] Improve mobile responsiveness
-- [ ] Integration with Where's My App inventory system
-
-## Origin
-
-This project was migrated from standalone HTML files originally hosted on an Unraid server for personal toolbox organization.
-
-## License
-
-MIT
+AI helped with the Canvas rendering code — drawing the profile illustrations and getting the 300 DPI print layout right. The concept, the design system, and the label format are mine. This solves a real problem I had. I use the output.
