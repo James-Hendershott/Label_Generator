@@ -204,6 +204,9 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
     <button class="btn btn-secondary" onclick="downloadSelected()">
       💾 Download Selected PNGs
     </button>
+    <button class="btn btn-secondary" onclick="downloadSelectedSVG()">
+      📐 Download Selected SVGs
+    </button>
     <div style="display:flex;gap:0.3rem;">
       <button class="btn btn-secondary btn-sm" onclick="selectAllVisible()" style="flex:1">Select Visible</button>
       <button class="btn btn-danger btn-sm" onclick="clearSelection()" style="flex:1">Clear All</button>
@@ -1233,6 +1236,325 @@ function downloadSelected() {
     link.download = key + '.png';
     link.href = c.toDataURL('image/png');
     link.click();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SVG EXPORT — Native vector output for 3D print / laser engraving
+// ═══════════════════════════════════════════════════════════════════════════
+
+function svgEl(tag, attrs) {
+  let s = `<${tag}`;
+  for (const [k, v] of Object.entries(attrs)) s += ` ${k}="${v}"`;
+  return s + '/>';
+}
+
+function svgHexPath(cx, cy, r, startDeg) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = ((startDeg || 0) + 60 * i) * Math.PI / 180;
+    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+  }
+  return `M${pts.join('L')}Z`;
+}
+
+function svgDriveTopDown(cx, cy, r, drive, filled) {
+  const fill = filled ? 'white' : 'black';
+  if (drive === 'PH') {
+    const lw = Math.max(3, r / 3);
+    return svgEl('rect', {x:cx-lw/2, y:cy-r, width:lw, height:r*2, fill}) +
+           svgEl('rect', {x:cx-r, y:cy-lw/2, width:r*2, height:lw, fill});
+  }
+  return `<path d="${svgHexPath(cx, cy, r, -30)}" fill="${fill}"/>`;
+}
+
+function svgTopDown(cx, cy, r, head, drive, filled) {
+  let s = '';
+  if (filled) {
+    s += svgEl('circle', {cx, cy, r, fill:'black'});
+    const sk = 'white';
+    if (head === 'CAP') {
+      s += svgEl('circle', {cx, cy, r:r*0.78, fill:'none', stroke:sk, 'stroke-width':2});
+      s += svgDriveTopDown(cx, cy, r*0.42, drive, true);
+    } else if (head === 'BTN') {
+      s += svgEl('circle', {cx, cy, r:r*0.70, fill:'none', stroke:sk, 'stroke-width':1});
+      s += svgDriveTopDown(cx, cy, r*0.32, drive, true);
+    } else if (head === 'CSK') {
+      s += svgEl('circle', {cx, cy, r:r*0.70, fill:'none', stroke:sk, 'stroke-width':1});
+      s += svgEl('circle', {cx, cy, r:r*0.45, fill:'none', stroke:sk, 'stroke-width':1});
+      s += svgDriveTopDown(cx, cy, r*0.35, drive, true);
+    } else {
+      s += svgEl('circle', {cx, cy, r:r*0.65, fill:'none', stroke:sk, 'stroke-width':1});
+      s += svgEl('circle', {cx, cy, r:r*0.42, fill:'none', stroke:sk, 'stroke-width':2});
+      s += svgDriveTopDown(cx, cy, r*0.28, drive, true);
+    }
+  } else {
+    s += svgEl('circle', {cx, cy, r, fill:'none', stroke:'black', 'stroke-width':3});
+    if (head === 'CAP') {
+      s += svgEl('circle', {cx, cy, r:r*0.78, fill:'none', stroke:'black', 'stroke-width':2});
+      s += svgDriveTopDown(cx, cy, r*0.42, drive, false);
+    } else if (head === 'BTN') {
+      s += svgEl('circle', {cx, cy, r:r*0.70, fill:'none', stroke:'black', 'stroke-width':1});
+      s += svgDriveTopDown(cx, cy, r*0.32, drive, false);
+    } else if (head === 'CSK') {
+      s += svgEl('circle', {cx, cy, r:r*0.70, fill:'none', stroke:'black', 'stroke-width':1});
+      s += svgEl('circle', {cx, cy, r:r*0.45, fill:'none', stroke:'black', 'stroke-width':1});
+      s += svgDriveTopDown(cx, cy, r*0.35, drive, false);
+    } else {
+      s += svgEl('circle', {cx, cy, r:r*0.65, fill:'none', stroke:'black', 'stroke-width':1});
+      s += svgEl('circle', {cx, cy, r:r*0.42, fill:'none', stroke:'black', 'stroke-width':2});
+      s += svgDriveTopDown(cx, cy, r*0.28, drive, false);
+    }
+  }
+  return s;
+}
+
+function svgThreads(l, r, top, bot, filled) {
+  let s = '';
+  const sk = filled ? 'white' : 'black';
+  for (let y = top; y < bot - 2; y += 7) {
+    s += `<line x1="${l+2}" y1="${y}" x2="${r-2}" y2="${y+1}" stroke="${sk}" stroke-width="1"/>`;
+  }
+  return s;
+}
+
+function svgSideProfile(x0, y0, w, h, head, filled) {
+  const cx = x0 + w / 2;
+  const sL = cx - w * 0.15, sR = cx + w * 0.15, sB = y0 + h * 0.88, tip = y0 + h * 0.96;
+  let s = '';
+
+  if (filled) {
+    let path;
+    let threadTop;
+    if (head === 'CAP') {
+      const hL=cx-w*0.30,hR=cx+w*0.30,hT=y0+h*0.04,hB=y0+h*0.37,ch=w*0.04;
+      threadTop = hB + 8;
+      path = `M${hL+ch},${hT} L${hR-ch},${hT} L${hR},${hT+ch} L${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB} L${hL},${hB} L${hL},${hT+ch}Z`;
+    } else if (head === 'BTN') {
+      const dL=cx-w*0.40,dR=cx+w*0.40,base=y0+h*0.35,dT=y0+h*0.04;
+      threadTop = base + 8;
+      const ry = (base + h*0.28 - dT) / 2, ey = (dT + base + h*0.28) / 2;
+      path = `M${dL},${ey} A${(dR-dL)/2+w*0.02},${ry} 0 0,1 ${dR},${ey} L${sR},${base} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${base}Z`;
+    } else if (head === 'CSK') {
+      const hL=cx-w*0.42,hR=cx+w*0.42,hT=y0+h*0.16,hB=y0+h*0.38;
+      threadTop = hB + 8;
+      path = `M${hL},${hT} L${hR},${hT} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z`;
+    } else {
+      const hL=cx-w*0.42,hR=cx+w*0.42,asY=y0+h*0.22,hB=y0+h*0.40,dA=y0+h*0.04;
+      threadTop = hB + 8;
+      const ry = (asY + h*0.16 - dA) / 2, ey = (dA + asY + h*0.16) / 2;
+      path = `M${hL},${ey} A${(hR-hL)/2+w*0.02},${ry} 0 0,1 ${hR},${ey} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z`;
+    }
+    s += `<path d="${path}" fill="black"/>`;
+    s += svgThreads(sL, sR, threadTop, sB, true);
+  } else {
+    if (head === 'CAP') {
+      const hL=cx-w*0.30,hR=cx+w*0.30,hT=y0+h*0.04,hB=y0+h*0.37;
+      s += svgEl('rect', {x:hL, y:hT, width:hR-hL, height:hB-hT, fill:'none', stroke:'black', 'stroke-width':3});
+      s += `<line x1="${hL}" y1="${hT+w*0.04}" x2="${hL+w*0.04}" y2="${hT}" stroke="black" stroke-width="2"/>`;
+      s += `<line x1="${hR}" y1="${hT+w*0.04}" x2="${hR-w*0.04}" y2="${hT}" stroke="black" stroke-width="2"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += svgThreads(sL, sR, hB + 8, sB, false);
+      s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+    } else if (head === 'BTN') {
+      const dL=cx-w*0.40,dR=cx+w*0.40,base=y0+h*0.35,dT=y0+h*0.04;
+      const ry=(base+h*0.28-dT)/2, ey=(dT+base+h*0.28)/2;
+      s += `<path d="M${dL},${ey} A${(dR-dL)/2+w*0.02},${ry} 0 0,1 ${dR},${ey}" fill="none" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${dL}" y1="${base}" x2="${dR}" y2="${base}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sL}" y1="${base}" x2="${sL}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${base}" x2="${sR}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += svgThreads(sL, sR, base + 8, sB, false);
+      s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+    } else if (head === 'CSK') {
+      const hL=cx-w*0.42,hR=cx+w*0.42,hT=y0+h*0.16,hB=y0+h*0.38;
+      s += `<line x1="${hL}" y1="${hT}" x2="${hR}" y2="${hT}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${hL}" y1="${hT}" x2="${sL}" y2="${hB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${hR}" y1="${hT}" x2="${sR}" y2="${hB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += svgThreads(sL, sR, hB + 8, sB, false);
+      s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+    } else {
+      const hL=cx-w*0.42,hR=cx+w*0.42,asY=y0+h*0.22,hB=y0+h*0.40,dA=y0+h*0.04;
+      const ry=(asY+h*0.16-dA)/2, ey=(dA+asY+h*0.16)/2;
+      s += `<path d="M${hL},${ey} A${(hR-hL)/2+w*0.02},${ry} 0 0,1 ${hR},${ey}" fill="none" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${hL}" y1="${asY}" x2="${sL}" y2="${hB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${hR}" y1="${asY}" x2="${sR}" y2="${hB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="black" stroke-width="3"/>`;
+      s += svgThreads(sL, sR, hB + 8, sB, false);
+      s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+      s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="black" stroke-width="3"/>`;
+    }
+  }
+  return s;
+}
+
+function svgNutTopDown(cx, cy, r, filled) {
+  if (filled) {
+    return `<path d="${svgHexPath(cx,cy,r,0)}" fill="black"/>` +
+           svgEl('circle', {cx, cy, r:r*0.38, fill:'white'});
+  }
+  return `<path d="${svgHexPath(cx,cy,r,0)}" fill="none" stroke="black" stroke-width="3"/>` +
+         svgEl('circle', {cx, cy, r:r*0.38, fill:'none', stroke:'black', 'stroke-width':2});
+}
+
+function svgNutSide(x0, y0, w, h, filled) {
+  const cx=x0+w/2, hw=w*0.34, hh=h*0.22, ch=w*0.06;
+  const top=y0+h*0.28, bot=top+2*hh;
+  let s = '';
+  if (filled) {
+    s += `<path d="M${cx-hw+ch},${top} L${cx+hw-ch},${top} L${cx+hw},${top+ch} L${cx+hw},${bot} L${cx-hw},${bot} L${cx-hw},${top+ch}Z" fill="black"/>`;
+    const pw = w * 0.12;
+    s += `<line x1="${cx-pw}" y1="${top}" x2="${cx-pw}" y2="${bot}" stroke="white" stroke-width="1"/>`;
+    s += `<line x1="${cx+pw}" y1="${top}" x2="${cx+pw}" y2="${bot}" stroke="white" stroke-width="1"/>`;
+  } else {
+    s += svgEl('rect', {x:cx-hw, y:top+ch, width:hw*2, height:bot-top-ch, fill:'none', stroke:'black', 'stroke-width':3});
+    s += `<line x1="${cx-hw}" y1="${top+ch}" x2="${cx-hw+ch}" y2="${top}" stroke="black" stroke-width="3"/>`;
+    s += `<line x1="${cx-hw+ch}" y1="${top}" x2="${cx+hw-ch}" y2="${top}" stroke="black" stroke-width="3"/>`;
+    s += `<line x1="${cx+hw-ch}" y1="${top}" x2="${cx+hw}" y2="${top+ch}" stroke="black" stroke-width="3"/>`;
+    const pw = w * 0.12;
+    s += `<line x1="${cx-pw}" y1="${top}" x2="${cx-pw}" y2="${bot}" stroke="black" stroke-width="1"/>`;
+    s += `<line x1="${cx+pw}" y1="${top}" x2="${cx+pw}" y2="${bot}" stroke="black" stroke-width="1"/>`;
+  }
+  return s;
+}
+
+function svgWasherTopDown(cx, cy, r, filled) {
+  if (filled) {
+    return svgEl('circle', {cx, cy, r, fill:'black'}) +
+           svgEl('circle', {cx, cy, r:r*0.40, fill:'white'});
+  }
+  return svgEl('circle', {cx, cy, r, fill:'none', stroke:'black', 'stroke-width':3}) +
+         svgEl('circle', {cx, cy, r:r*0.40, fill:'none', stroke:'black', 'stroke-width':2});
+}
+
+function svgWasherSide(x0, y0, w, h, filled) {
+  const cx=x0+w/2, hw=w*0.40, hh=h*0.05, cy=y0+h/2;
+  let s = '';
+  if (filled) {
+    s += svgEl('rect', {x:cx-hw, y:cy-hh, width:hw*2, height:hh*2, fill:'black'});
+    const pw = w * 0.14;
+    s += `<line x1="${cx-pw}" y1="${cy-hh}" x2="${cx-pw}" y2="${cy+hh}" stroke="white" stroke-width="1"/>`;
+    s += `<line x1="${cx+pw}" y1="${cy-hh}" x2="${cx+pw}" y2="${cy+hh}" stroke="white" stroke-width="1"/>`;
+  } else {
+    s += svgEl('rect', {x:cx-hw, y:cy-hh, width:hw*2, height:hh*2, fill:'none', stroke:'black', 'stroke-width':3});
+    const pw = w * 0.14;
+    s += `<line x1="${cx-pw}" y1="${cy-hh}" x2="${cx-pw}" y2="${cy+hh}" stroke="black" stroke-width="1"/>`;
+    s += `<line x1="${cx+pw}" y1="${cy-hh}" x2="${cx+pw}" y2="${cy+hh}" stroke="black" stroke-width="1"/>`;
+  }
+  return s;
+}
+
+function svgSingleHalf(cfg, x0, y0, w, h, fontSize) {
+  let s = '';
+  const sz = fontSize || {size:62, type:32, socket:22, head:22, mat:22};
+
+  // Bars
+  const barCount = SIZE_BARS[cfg.size];
+  const barH = fontSize ? 10 : 14, barGap = fontSize ? 3 : 4;
+  const barAreaW = w - 8;
+  const barW = Math.floor((barAreaW - (barCount - 1) * barGap) / barCount);
+  for (let i = 0; i < barCount; i++) {
+    s += svgEl('rect', {x:x0+4+i*(barW+barGap), y:y0+3, width:barW, height:barH, fill:'black'});
+  }
+
+  const ctop = y0 + 3 + barH + 4;
+  const tzW = Math.floor(w * 0.52);
+  const tx = x0 + 8;
+
+  if (cfg.cat === 'screw') {
+    s += `<text x="${tx}" y="${ctop+sz.size*0.77}" font-family="sans-serif" font-weight="bold" font-size="${sz.size}" fill="black">${cfg.size} x ${cfg.length}</text>`;
+    s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+2}" font-family="sans-serif" font-weight="bold" font-size="${sz.type}" fill="black">${DRIVES_ABBR[cfg.drive]} ${cfg.head}</text>`;
+    if (sz.socket) s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+sz.socket+6}" font-family="sans-serif" font-size="${sz.socket}" fill="black">Socket: ${DRIVES[cfg.drive]}</text>`;
+    if (sz.head) s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+sz.socket+(sz.head||0)+10}" font-family="sans-serif" font-size="${sz.head}" fill="black">Head: ${HEADS[cfg.head].full}</text>`;
+    s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+sz.socket+(sz.head||0)+sz.mat+14}" font-family="sans-serif" font-weight="bold" font-size="${sz.mat}" fill="black">${cfg.material}</text>`;
+  } else {
+    const hwAbbr = cfg.cat === 'nut' ? 'NUT' : 'WASHER';
+    const hwFull = cfg.cat === 'nut' ? 'Hex Nut' : 'Flat Washer';
+    s += `<text x="${tx}" y="${ctop+sz.size*0.77}" font-family="sans-serif" font-weight="bold" font-size="${sz.size}" fill="black">${cfg.size}</text>`;
+    s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+2}" font-family="sans-serif" font-weight="bold" font-size="${sz.type}" fill="black">${hwAbbr}</text>`;
+    if (sz.socket) s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+sz.socket+6}" font-family="sans-serif" font-size="${sz.socket}" fill="black">${hwFull}</text>`;
+    s += `<text x="${tx}" y="${ctop+sz.size*0.77+sz.type+(sz.socket||0)+sz.mat+10}" font-family="sans-serif" font-weight="bold" font-size="${sz.mat}" fill="black">${cfg.material}</text>`;
+  }
+
+  // Divider
+  const divX = x0 + tzW - 4;
+  s += `<line x1="${divX}" y1="${ctop+2}" x2="${divX}" y2="${y0+h-6}" stroke="black" stroke-width="1"/>`;
+
+  // Drawing zone
+  const dzStart = x0 + tzW;
+  const dzW = w - tzW - 4;
+  const tdZW = Math.floor(dzW * 0.48);
+  const sideZW = dzW - tdZW;
+  const contentH = h - (ctop - y0) - 4;
+  const tdCx = dzStart + tdZW / 2;
+  const tdCy = ctop + contentH / 2;
+  const tdR = Math.min(tdZW * 0.42, contentH * 0.42);
+  const filled = cfg.material === 'Black';
+
+  if (cfg.cat === 'screw') {
+    s += svgTopDown(tdCx, tdCy, tdR, cfg.head, cfg.drive, filled);
+    s += svgSideProfile(dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, cfg.head, filled);
+  } else if (cfg.cat === 'nut') {
+    s += svgNutTopDown(tdCx, tdCy, tdR, filled);
+    s += svgNutSide(dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, filled);
+  } else {
+    s += svgWasherTopDown(tdCx, tdCy, tdR, filled);
+    s += svgWasherSide(dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, filled);
+  }
+  return s;
+}
+
+function buildSVG(cfg) {
+  const w = LW, h = LH;
+  // viewBox uses pixel coords; width/height set physical size in mm
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="40mm" height="16mm">`;
+  svg += svgEl('rect', {x:0, y:0, width:w, height:h, fill:'white'});
+
+  if (cfg.cat === 'dual') {
+    const halfW = Math.floor(w / 2);
+    svg += svgSingleHalf(cfg.left, 0, 0, halfW, h, {size:34,type:20,socket:0,head:0,mat:16});
+    svg += svgSingleHalf(cfg.right, halfW, 0, halfW, h, {size:34,type:20,socket:0,head:0,mat:16});
+    svg += `<line x1="${halfW}" y1="4" x2="${halfW}" y2="${h-4}" stroke="black" stroke-width="3" stroke-dasharray="8,4"/>`;
+  } else if (cfg.cat === 'triple') {
+    const halfW = Math.floor(w / 2), halfH = Math.floor(h / 2);
+    svg += svgSingleHalf(cfg.topLeft, 0, 0, halfW, halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += svgSingleHalf(cfg.topRight, halfW, 0, halfW, halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += svgSingleHalf(cfg.bottom, 0, halfH, w, h - halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += `<line x1="${halfW}" y1="3" x2="${halfW}" y2="${halfH-1}" stroke="black" stroke-width="2" stroke-dasharray="6,3"/>`;
+    svg += `<line x1="3" y1="${halfH}" x2="${w-3}" y2="${halfH}" stroke="black" stroke-width="2" stroke-dasharray="6,3"/>`;
+  } else if (cfg.cat === 'quad') {
+    const halfW = Math.floor(w / 2), halfH = Math.floor(h / 2);
+    svg += svgSingleHalf(cfg.topLeft, 0, 0, halfW, halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += svgSingleHalf(cfg.topRight, halfW, 0, halfW, halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += svgSingleHalf(cfg.bottomLeft, 0, halfH, halfW, h - halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += svgSingleHalf(cfg.bottomRight, halfW, halfH, halfW, h - halfH, {size:22,type:14,socket:0,head:0,mat:12});
+    svg += `<line x1="${halfW}" y1="3" x2="${halfW}" y2="${h-3}" stroke="black" stroke-width="2" stroke-dasharray="6,3"/>`;
+    svg += `<line x1="3" y1="${halfH}" x2="${w-3}" y2="${halfH}" stroke="black" stroke-width="2" stroke-dasharray="6,3"/>`;
+  } else {
+    svg += svgSingleHalf(cfg, 0, 0, w, h);
+  }
+
+  // Border
+  svg += svgEl('rect', {x:1, y:1, width:w-2, height:h-2, fill:'none', stroke:'black', 'stroke-width':2});
+  svg += '</svg>';
+  return svg;
+}
+
+function downloadSelectedSVG() {
+  for (const [key, {cfg}] of selectedLabels) {
+    const svgData = buildSVG(cfg);
+    const blob = new Blob([svgData], {type: 'image/svg+xml'});
+    const link = document.createElement('a');
+    link.download = key + '.svg';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 }
 
