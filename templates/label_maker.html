@@ -147,6 +147,8 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
       <div class="chip active" data-val="screw" onclick="toggleFilter('cat','screw',this)">Screws</div>
       <div class="chip active" data-val="nut" onclick="toggleFilter('cat','nut',this)">Nuts</div>
       <div class="chip active" data-val="washer" onclick="toggleFilter('cat','washer',this)">Washers</div>
+      <div class="chip" data-val="wood" onclick="toggleFilter('cat','wood',this)">Wood</div>
+      <div class="chip" data-val="tapping" onclick="toggleFilter('cat','tapping',this)">Self-Tap</div>
     </div>
   </div>
 
@@ -191,6 +193,50 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
   <div class="filter-group">
     <label>Length (mm)</label>
     <div class="chip-group length-grid" id="lenFilter"></div>
+  </div>
+
+  <!-- Wood Screw Filters -->
+  <div id="woodFilters" style="display:none">
+    <div style="border-top:1px solid var(--border);margin:0.5rem 0;"></div>
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#A0522D;font-weight:700;margin-bottom:0.5rem;">Wood Screws</div>
+    <div class="filter-group">
+      <label>Gauge</label>
+      <div class="chip-group" id="woodGaugeFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Head</label>
+      <div class="chip-group" id="woodHeadFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Drive</label>
+      <div class="chip-group" id="woodDriveFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Material</label>
+      <div class="chip-group" id="woodMatFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Length (in)</label>
+      <div class="chip-group length-grid" id="woodLenFilter"></div>
+    </div>
+  </div>
+
+  <!-- Self-Tapping Screw Filters -->
+  <div id="stFilters" style="display:none">
+    <div style="border-top:1px solid var(--border);margin:0.5rem 0;"></div>
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#2B6CB0;font-weight:700;margin-bottom:0.5rem;">Self-Tapping</div>
+    <div class="filter-group">
+      <label>Gauge</label>
+      <div class="chip-group" id="stGaugeFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Material</label>
+      <div class="chip-group" id="stMatFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Length (in)</label>
+      <div class="chip-group length-grid" id="stLenFilter"></div>
+    </div>
   </div>
 
   <!-- Selection info & actions -->
@@ -406,6 +452,23 @@ const DRIVES = {PH:'Phillips',HX:'Hex'};
 const DRIVES_ABBR = {PH:'PH',HX:'HEX'};
 const MATS = ['Black','Stainless'];
 
+// WOOD SCREWS
+const WOOD_GAUGES = ['#6','#8','#9','#10','#12'];
+const WOOD_GAUGE_BARS = {'#6':1,'#8':2,'#9':3,'#10':4,'#12':5};
+const WOOD_BAR_COLOR = '#A0522D';
+const WOOD_LENGTHS = ['3/4"','1"','1-1/4"','1-1/2"','1-3/4"','2"','2-1/2"','3"','3-1/2"','4"'];
+const WOOD_HEADS = {FLAT:{full:'Flat Head'},WAFER:{full:'Wafer Head'},PAN:{full:'Pan Head'},PKT:{full:'Pocket Head'}};
+const WOOD_DRIVES = {TX15:'Torx T15',TX20:'Torx T20',TX25:'Torx T25',PH:'Phillips',SQ:'Robertson Square'};
+const WOOD_DRIVES_ABBR = {TX15:'T15',TX20:'T20',TX25:'T25',PH:'PH',SQ:'SQ'};
+const WOOD_MATS = ['Zinc','Stainless'];
+
+// SELF-TAPPING SCREWS
+const ST_GAUGES = ['#6','#8','#10','#12'];
+const ST_GAUGE_BARS = {'#6':1,'#8':2,'#10':3,'#12':4};
+const ST_BAR_COLOR = '#2B6CB0';
+const ST_LENGTHS = ['1/2"','3/4"','1"','1-1/4"','1-1/2"','2"'];
+const ST_MATS = ['Zinc','Stainless'];
+
 // Label dimensions at 300dpi
 const LW = 472, LH = 189;
 // US Letter (8.5"×11") at 300dpi
@@ -417,7 +480,10 @@ const PER_PAGE = COLS * ROWS;
 
 // State
 let filters = { cat:new Set(['screw','nut','washer']), size:new Set(SIZES), head:new Set(Object.keys(HEADS)),
-  drive:new Set(['PH','HX']), mat:new Set(MATS), len:new Set(ALL_LENGTHS) };
+  drive:new Set(['PH','HX']), mat:new Set(MATS), len:new Set(ALL_LENGTHS),
+  woodGauge:new Set(WOOD_GAUGES), woodHead:new Set(Object.keys(WOOD_HEADS)),
+  woodDrive:new Set(Object.keys(WOOD_DRIVES)), woodMat:new Set(WOOD_MATS), woodLen:new Set(WOOD_LENGTHS),
+  stGauge:new Set(ST_GAUGES), stMat:new Set(ST_MATS), stLen:new Set(ST_LENGTHS) };
 let selectedLabels = new Map(); // key -> {config, qty}
 let allLabels = []; // generated label configs
 let quickAddMode = 'single'; // 'single', 'dual', 'triple', or 'quad'
@@ -430,6 +496,8 @@ function drawLabel(canvas, cfg) {
   if (cfg.cat === 'triple') { drawTripleLabel(canvas, cfg); return; }
   if (cfg.cat === 'quad') { drawQuadLabel(canvas, cfg); return; }
   if (cfg.cat === 'dual') { drawDualLabel(canvas, cfg); return; }
+  if (cfg.cat === 'wood') { drawWoodLabel(canvas, cfg); return; }
+  if (cfg.cat === 'tapping') { drawTappingLabel(canvas, cfg); return; }
   canvas.width = LW; canvas.height = LH;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = 'white';
@@ -752,6 +820,360 @@ function drawWasherSide(ctx, x0, y0, w, h, filled) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// WOOD & SELF-TAPPING DRAWING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function drawTorxDrive(ctx, cx, cy, r, filled) {
+  ctx.fillStyle = filled ? 'white' : 'black';
+  const lobeR = r * 0.46, lobeD = r * 0.54;
+  for (let i = 0; i < 6; i++) {
+    const a = i * 60 * Math.PI / 180;
+    ctx.beginPath();
+    ctx.arc(cx + lobeD * Math.cos(a), cy + lobeD * Math.sin(a), lobeR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.22, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawWoodDriveTopDown(ctx, cx, cy, r, drive, filled) {
+  if (drive === 'PH') {
+    ctx.fillStyle = filled ? 'white' : 'black';
+    const lw = Math.max(3, r / 3);
+    ctx.fillRect(cx - lw/2, cy - r, lw, r*2);
+    ctx.fillRect(cx - r, cy - lw/2, r*2, lw);
+  } else if (drive === 'SQ') {
+    const s = r * 0.72;
+    ctx.fillStyle = filled ? 'white' : 'black';
+    ctx.fillRect(cx - s, cy - s, s*2, s*2);
+  } else {
+    drawTorxDrive(ctx, cx, cy, r, filled);
+  }
+}
+
+function drawWoodTopDown(ctx, cx, cy, r, head, drive, filled) {
+  if (filled) {
+    ctx.fillStyle = 'black';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'white';
+    if (head === 'WAFER') {
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r*0.85, 0, Math.PI*2); ctx.stroke();
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r*0.68, 0, Math.PI*2); ctx.stroke();
+    } else if (head === 'FLAT') {
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r*0.72, 0, Math.PI*2); ctx.stroke();
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r*0.50, 0, Math.PI*2); ctx.stroke();
+    } else if (head === 'PAN') {
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r*0.78, 0, Math.PI*2); ctx.stroke();
+    } else { // PKT
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r*0.70, 0, Math.PI*2); ctx.stroke();
+    }
+    drawWoodDriveTopDown(ctx, cx, cy, r*0.38, drive, true);
+  } else {
+    ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+    if (head === 'WAFER') {
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r*0.85, 0, Math.PI*2); ctx.stroke();
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r*0.68, 0, Math.PI*2); ctx.stroke();
+    } else if (head === 'FLAT') {
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r*0.72, 0, Math.PI*2); ctx.stroke();
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r*0.50, 0, Math.PI*2); ctx.stroke();
+    } else if (head === 'PAN') {
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r*0.78, 0, Math.PI*2); ctx.stroke();
+    } else { // PKT
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r*0.70, 0, Math.PI*2); ctx.stroke();
+    }
+    drawWoodDriveTopDown(ctx, cx, cy, r*0.38, drive, false);
+  }
+}
+
+function drawWoodThreads(ctx, l, r, top, bot, filled) {
+  ctx.lineWidth = 1; ctx.strokeStyle = filled ? 'white' : 'black';
+  for (let y = top; y < bot - 2; y += 12) {
+    ctx.beginPath(); ctx.moveTo(l - 4, y); ctx.lineTo(r + 4, y + 2); ctx.stroke();
+  }
+  ctx.lineWidth = 3;
+}
+
+function drawWoodSideProfile(ctx, x0, y0, w, h, head, filled) {
+  const cx = x0 + w / 2;
+  const sL = cx - w*0.14, sR = cx + w*0.14;
+  const sB = y0 + h*0.86, tip = y0 + h*0.99;
+
+  if (head === 'PAN') {
+    const hL = cx - w*0.36, hR = cx + w*0.36;
+    const hT = y0 + h*0.05, hB = y0 + h*0.27;
+    if (filled) {
+      ctx.fillStyle = 'black'; ctx.beginPath();
+      ctx.moveTo(hL, hB);
+      ctx.bezierCurveTo(hL, hT+4, cx-w*0.1, hT, cx, hT);
+      ctx.bezierCurveTo(cx+w*0.1, hT, hR, hT+4, hR, hB);
+      ctx.lineTo(sR, hB); ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
+      ctx.closePath(); ctx.fill();
+      drawWoodThreads(ctx, sL, sR, hB+6, sB, true);
+    } else {
+      ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(hL, hB);
+      ctx.bezierCurveTo(hL, hT+4, cx-w*0.1, hT, cx, hT);
+      ctx.bezierCurveTo(cx+w*0.1, hT, hR, hT+4, hR, hB);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hL, hB); ctx.lineTo(hR, hB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sL, hB); ctx.lineTo(sL, sB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sR, hB); ctx.lineTo(sR, sB); ctx.stroke();
+      drawWoodThreads(ctx, sL, sR, hB+6, sB, false);
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(sL, sB); ctx.lineTo(cx, tip); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sR, sB); ctx.lineTo(cx, tip); ctx.stroke();
+    }
+    return;
+  }
+
+  if (head === 'PKT') {
+    const hL = cx - w*0.32, hR = cx + w*0.32;
+    const hT = y0 + h*0.06, hB = y0 + h*0.24;
+    if (filled) {
+      ctx.fillStyle = 'black'; ctx.beginPath();
+      ctx.moveTo(hL, hT); ctx.lineTo(hR, hT);
+      ctx.lineTo(hR, hB); ctx.lineTo(sR, hB);
+      ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
+      ctx.lineTo(hL, hB); ctx.closePath(); ctx.fill();
+      drawWoodThreads(ctx, sL, sR, hB+4, sB, true);
+    } else {
+      ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
+      ctx.strokeRect(hL, hT, hR-hL, hB-hT);
+      ctx.beginPath(); ctx.moveTo(hL, hB); ctx.lineTo(sL, hB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hR, hB); ctx.lineTo(sR, hB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sL, hB); ctx.lineTo(sL, sB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sR, hB); ctx.lineTo(sR, sB); ctx.stroke();
+      drawWoodThreads(ctx, sL, sR, hB+4, sB, false);
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(sL, sB); ctx.lineTo(cx, tip); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sR, sB); ctx.lineTo(cx, tip); ctx.stroke();
+    }
+    return;
+  }
+
+  // FLAT and WAFER
+  if (filled) {
+    ctx.fillStyle = 'black'; ctx.beginPath();
+    if (head === 'WAFER') {
+      const hL = cx-w*0.43, hR = cx+w*0.43, hT = y0+h*0.06, hB = y0+h*0.26;
+      ctx.moveTo(hL, hB);
+      ctx.bezierCurveTo(hL, hB-(hB-hT)*0.6, hL+(cx-hL)*0.3, hT, cx, hT);
+      ctx.bezierCurveTo(cx+(hR-cx)*0.7, hT, hR, hB-(hB-hT)*0.6, hR, hB);
+      ctx.lineTo(sR, hB); ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
+      ctx.closePath(); ctx.fill();
+      drawWoodThreads(ctx, sL, sR, y0+h*0.26+6, sB, true);
+    } else {
+      const hL = cx-w*0.42, hR = cx+w*0.42, hT = y0+h*0.06, hB = y0+h*0.32;
+      ctx.moveTo(hL, hT); ctx.lineTo(hR, hT);
+      ctx.lineTo(sR, hB); ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
+      ctx.closePath(); ctx.fill();
+      drawWoodThreads(ctx, sL, sR, y0+h*0.32+6, sB, true);
+    }
+  } else {
+    ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
+    if (head === 'WAFER') {
+      const hL = cx-w*0.43, hR = cx+w*0.43, hT = y0+h*0.06, hB = y0+h*0.26;
+      ctx.beginPath();
+      ctx.moveTo(hL, hB);
+      ctx.bezierCurveTo(hL, hB-(hB-hT)*0.6, hL+(cx-hL)*0.3, hT, cx, hT);
+      ctx.bezierCurveTo(cx+(hR-cx)*0.7, hT, hR, hB-(hB-hT)*0.6, hR, hB);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hL, hB); ctx.lineTo(hR, hB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sL, hB); ctx.lineTo(sL, sB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sR, hB); ctx.lineTo(sR, sB); ctx.stroke();
+      drawWoodThreads(ctx, sL, sR, hB+6, sB, false);
+    } else {
+      const hL = cx-w*0.42, hR = cx+w*0.42, hT = y0+h*0.06, hB = y0+h*0.32;
+      ctx.beginPath(); ctx.moveTo(hL, hT); ctx.lineTo(hR, hT); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hL, hT); ctx.lineTo(sL, hB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hR, hT); ctx.lineTo(sR, hB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sL, hB); ctx.lineTo(sL, sB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sR, hB); ctx.lineTo(sR, sB); ctx.stroke();
+      drawWoodThreads(ctx, sL, sR, hB+6, sB, false);
+    }
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sL, sB); ctx.lineTo(cx, tip); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sR, sB); ctx.lineTo(cx, tip); ctx.stroke();
+  }
+}
+
+function drawWoodLabel(canvas, cfg) {
+  canvas.width = LW; canvas.height = LH;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, LW, LH);
+
+  const barCount = WOOD_GAUGE_BARS[cfg.gauge];
+  const barH = 14, barGap = 4;
+  const barW = Math.floor((LW - 8 - (barCount - 1) * barGap) / barCount);
+  ctx.fillStyle = WOOD_BAR_COLOR;
+  for (let i = 0; i < barCount; i++) ctx.fillRect(4 + i * (barW + barGap), 3, barW, barH);
+
+  const ctop = 3 + barH + 4, tzW = Math.floor(LW * 0.52), tx = 8;
+  ctx.fillStyle = 'black';
+
+  ctx.font = 'bold 62px "DejaVu Sans",sans-serif';
+  const l1 = cfg.gauge + ' x ' + cfg.length;
+  if (ctx.measureText(l1).width > tzW - tx - 8) ctx.font = 'bold 50px "DejaVu Sans",sans-serif';
+  ctx.fillText(l1, tx, ctop + 48);
+
+  ctx.font = 'bold 32px "DejaVu Sans",sans-serif';
+  ctx.fillText((WOOD_DRIVES_ABBR[cfg.drive] || cfg.drive) + ' ' + cfg.head, tx, ctop + 80);
+
+  ctx.font = '22px "DejaVu Sans",sans-serif';
+  ctx.fillText('Drive: ' + (WOOD_DRIVES[cfg.drive] || cfg.drive), tx, ctop + 104);
+
+  const headText = 'Head: ' + WOOD_HEADS[cfg.head].full;
+  ctx.font = '22px "DejaVu Sans",sans-serif';
+  if (ctx.measureText(headText).width > tzW - tx - 8) ctx.font = '18px "DejaVu Sans",sans-serif';
+  ctx.fillText(headText, tx, ctop + 126);
+
+  ctx.font = 'bold 22px "DejaVu Sans",sans-serif';
+  ctx.fillText(cfg.material, tx, ctop + 150);
+
+  const divX = tzW - 4;
+  ctx.strokeStyle = 'black'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(divX, ctop + 2); ctx.lineTo(divX, LH - 6); ctx.stroke();
+
+  const dzStart = tzW, dzW = LW - dzStart - 4;
+  const tdZW = Math.floor(dzW * 0.48), sideZW = dzW - tdZW;
+  const contentH = LH - ctop - 4;
+  const tdCx = dzStart + tdZW / 2, tdCy = ctop + contentH / 2;
+  const tdR = Math.min(tdZW * 0.42, contentH * 0.42);
+  const filled = cfg.material !== 'Stainless';
+
+  drawWoodTopDown(ctx, tdCx, tdCy, tdR, cfg.head, cfg.drive, filled);
+  drawWoodSideProfile(ctx, dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, cfg.head, filled);
+
+  ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, LW - 2, LH - 2);
+}
+
+// ── Self-Tapping (Hex Washer Head) ─────────────────────────────────────────
+
+function drawHexWasherTopDown(ctx, cx, cy, r, filled) {
+  if (filled) {
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (60 * i - 30) * Math.PI / 180;
+      i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
+              : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (60 * i - 30) * Math.PI / 180;
+      i === 0 ? ctx.moveTo(cx + r * 0.72 * Math.cos(a), cy + r * 0.72 * Math.sin(a))
+              : ctx.lineTo(cx + r * 0.72 * Math.cos(a), cy + r * 0.72 * Math.sin(a));
+    }
+    ctx.closePath(); ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (60 * i - 30) * Math.PI / 180;
+      i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
+              : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+}
+
+function drawHexWasherSide(ctx, x0, y0, w, h, filled) {
+  const cx = x0 + w / 2;
+  const hW = w * 0.22, wW = w * 0.44;
+  const hT = y0 + h * 0.04, hB = y0 + h * 0.22;
+  const wB = y0 + h * 0.32;
+  const sL = cx - w * 0.12, sR = cx + w * 0.12;
+  const sB = y0 + h * 0.86, tip = y0 + h * 0.98;
+
+  if (filled) {
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.moveTo(cx - hW, hT); ctx.lineTo(cx + hW, hT);
+    ctx.lineTo(cx + hW, hB); ctx.lineTo(cx + wW, hB);
+    ctx.lineTo(cx + wW, wB); ctx.lineTo(sR, wB);
+    ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB);
+    ctx.lineTo(sL, wB); ctx.lineTo(cx - wW, wB);
+    ctx.lineTo(cx - wW, hB); ctx.lineTo(cx - hW, hB);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - hW, hT + 2); ctx.lineTo(cx + hW, hT + 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - hW, hB - 2); ctx.lineTo(cx + hW, hB - 2); ctx.stroke();
+    for (let y = wB + 8; y < sB - 2; y += 10) {
+      ctx.beginPath(); ctx.moveTo(sL - 3, y); ctx.lineTo(sR + 3, y + 1.5); ctx.stroke();
+    }
+  } else {
+    ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
+    ctx.strokeRect(cx - hW, hT, hW * 2, hB - hT);
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - wW, hB); ctx.lineTo(cx + wW, hB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - wW, hB); ctx.lineTo(cx - wW, wB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + wW, hB); ctx.lineTo(cx + wW, wB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - wW, wB); ctx.lineTo(cx + wW, wB); ctx.stroke();
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sL, wB); ctx.lineTo(sL, sB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sR, wB); ctx.lineTo(sR, sB); ctx.stroke();
+    ctx.lineWidth = 1;
+    for (let y = wB + 8; y < sB - 2; y += 10) {
+      ctx.beginPath(); ctx.moveTo(sL - 3, y); ctx.lineTo(sR + 3, y + 1.5); ctx.stroke();
+    }
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sL, sB); ctx.lineTo(cx, tip); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sR, sB); ctx.lineTo(cx, tip); ctx.stroke();
+  }
+}
+
+function drawTappingLabel(canvas, cfg) {
+  canvas.width = LW; canvas.height = LH;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, LW, LH);
+
+  const barCount = ST_GAUGE_BARS[cfg.gauge];
+  const barH = 14, barGap = 4;
+  const barW = Math.floor((LW - 8 - (barCount - 1) * barGap) / barCount);
+  ctx.fillStyle = ST_BAR_COLOR;
+  for (let i = 0; i < barCount; i++) ctx.fillRect(4 + i * (barW + barGap), 3, barW, barH);
+
+  const ctop = 3 + barH + 4, tzW = Math.floor(LW * 0.52), tx = 8;
+  ctx.fillStyle = 'black';
+
+  ctx.font = 'bold 62px "DejaVu Sans",sans-serif';
+  const l1 = cfg.gauge + ' x ' + cfg.length;
+  if (ctx.measureText(l1).width > tzW - tx - 8) ctx.font = 'bold 50px "DejaVu Sans",sans-serif';
+  ctx.fillText(l1, tx, ctop + 48);
+
+  ctx.font = 'bold 32px "DejaVu Sans",sans-serif';
+  ctx.fillText('HEX HWH', tx, ctop + 80);
+
+  ctx.font = '22px "DejaVu Sans",sans-serif';
+  ctx.fillText('Drive: Socket', tx, ctop + 104);
+
+  ctx.font = '22px "DejaVu Sans",sans-serif';
+  ctx.fillText('Head: Hex Washer', tx, ctop + 126);
+
+  ctx.font = 'bold 22px "DejaVu Sans",sans-serif';
+  ctx.fillText(cfg.material, tx, ctop + 150);
+
+  const divX = tzW - 4;
+  ctx.strokeStyle = 'black'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(divX, ctop + 2); ctx.lineTo(divX, LH - 6); ctx.stroke();
+
+  const dzStart = tzW, dzW = LW - dzStart - 4;
+  const tdZW = Math.floor(dzW * 0.48), sideZW = dzW - tdZW;
+  const contentH = LH - ctop - 4;
+  const tdCx = dzStart + tdZW / 2, tdCy = ctop + contentH / 2;
+  const tdR = Math.min(tdZW * 0.42, contentH * 0.42);
+  const filled = cfg.material !== 'Stainless';
+
+  drawHexWasherTopDown(ctx, tdCx, tdCy, tdR, filled);
+  drawHexWasherSide(ctx, dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, filled);
+
+  ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, LW - 2, LH - 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DUAL LABEL DRAWING
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1018,13 +1440,14 @@ function getLabelKey(cfg) {
   if (cfg.cat==='quad') return 'QUAD_' + getLabelKey(cfg.topLeft) + '__' + getLabelKey(cfg.topRight) + '__' + getLabelKey(cfg.bottomLeft) + '__' + getLabelKey(cfg.bottomRight);
   if (cfg.cat==='dual') return 'DUAL_' + getLabelKey(cfg.left) + '__' + getLabelKey(cfg.right);
   if (cfg.cat==='screw') return `${cfg.size}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.material}`;
+  if (cfg.cat==='wood') return `WD_${cfg.gauge}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.material}`;
+  if (cfg.cat==='tapping') return `ST_${cfg.gauge}x${cfg.length}_HWH_${cfg.material}`;
   return `${cfg.size}_${cfg.cat}_${cfg.material}`;
 }
 
 function buildAllLabels() {
   allLabels = [];
   for (const size of SIZES) {
-    // Screws
     for (const len of SIZE_LENGTHS[size]) {
       for (const head of Object.keys(HEADS)) {
         for (const drive of ['PH','HX']) {
@@ -1034,10 +1457,27 @@ function buildAllLabels() {
         }
       }
     }
-    // Hardware
     for (const mat of MATS) {
       allLabels.push({cat:'nut',size,material:mat});
       allLabels.push({cat:'washer',size,material:mat});
+    }
+  }
+  for (const gauge of WOOD_GAUGES) {
+    for (const len of WOOD_LENGTHS) {
+      for (const head of Object.keys(WOOD_HEADS)) {
+        for (const drive of Object.keys(WOOD_DRIVES)) {
+          for (const mat of WOOD_MATS) {
+            allLabels.push({cat:'wood',gauge,length:len,head,drive,material:mat});
+          }
+        }
+      }
+    }
+  }
+  for (const gauge of ST_GAUGES) {
+    for (const len of ST_LENGTHS) {
+      for (const mat of ST_MATS) {
+        allLabels.push({cat:'tapping',gauge,length:len,head:'HWH',material:mat});
+      }
     }
   }
 }
@@ -1046,6 +1486,36 @@ function matchesFilters(cfg) {
   if (cfg.cat === 'triple') return matchesFilters(cfg.topLeft) || matchesFilters(cfg.topRight) || matchesFilters(cfg.bottom);
   if (cfg.cat === 'quad') return matchesFilters(cfg.topLeft) || matchesFilters(cfg.topRight) || matchesFilters(cfg.bottomLeft) || matchesFilters(cfg.bottomRight);
   if (cfg.cat === 'dual') return matchesFilters(cfg.left) || matchesFilters(cfg.right);
+
+  if (cfg.cat === 'wood') {
+    if (!filters.cat.has('wood')) return false;
+    if (!filters.woodGauge.has(cfg.gauge)) return false;
+    if (!filters.woodHead.has(cfg.head)) return false;
+    if (!filters.woodDrive.has(cfg.drive)) return false;
+    if (!filters.woodMat.has(cfg.material)) return false;
+    if (!filters.woodLen.has(cfg.length)) return false;
+    const q = document.getElementById('searchBox').value.toLowerCase().trim();
+    if (q) {
+      const s = getLabelKey(cfg).toLowerCase() + ' wood ' + cfg.gauge + ' ' + cfg.length + ' ' +
+        WOOD_HEADS[cfg.head].full.toLowerCase() + ' ' + WOOD_DRIVES[cfg.drive].toLowerCase() + ' ' + cfg.material.toLowerCase();
+      for (const t of q.split(/\s+/)) { if (!s.includes(t)) return false; }
+    }
+    return true;
+  }
+
+  if (cfg.cat === 'tapping') {
+    if (!filters.cat.has('tapping')) return false;
+    if (!filters.stGauge.has(cfg.gauge)) return false;
+    if (!filters.stMat.has(cfg.material)) return false;
+    if (!filters.stLen.has(cfg.length)) return false;
+    const q = document.getElementById('searchBox').value.toLowerCase().trim();
+    if (q) {
+      const s = getLabelKey(cfg).toLowerCase() + ' self-tap hex washer ' + cfg.gauge + ' ' + cfg.length + ' ' + cfg.material.toLowerCase();
+      for (const t of q.split(/\s+/)) { if (!s.includes(t)) return false; }
+    }
+    return true;
+  }
+
   if (!filters.cat.has(cfg.cat)) return false;
   if (!filters.size.has(cfg.size)) return false;
   if (!filters.mat.has(cfg.material)) return false;
@@ -1054,7 +1524,6 @@ function matchesFilters(cfg) {
     if (!filters.drive.has(cfg.drive)) return false;
     if (!filters.len.has(cfg.length)) return false;
   }
-  // Search box
   const q = document.getElementById('searchBox').value.toLowerCase().trim();
   if (q) {
     const searchStr = getLabelKey(cfg).toLowerCase() + ' ' +
@@ -1153,6 +1622,10 @@ function toggleFilter(type, val, el) {
   const set = filters[type];
   if (set.has(numVal)) { set.delete(numVal); el.classList.remove('active'); }
   else { set.add(numVal); el.classList.add('active'); }
+  if (type === 'cat') {
+    if (val === 'wood') document.getElementById('woodFilters').style.display = filters.cat.has('wood') ? 'block' : 'none';
+    if (val === 'tapping') document.getElementById('stFilters').style.display = filters.cat.has('tapping') ? 'block' : 'none';
+  }
   applyFilters();
 }
 
@@ -1510,6 +1983,236 @@ function svgSingleHalf(cfg, x0, y0, w, h, fontSize) {
   return s;
 }
 
+// ── SVG helpers for Wood & Self-Tapping ────────────────────────────────────
+
+function svgTorxDrive(cx, cy, r, filled) {
+  const fill = filled ? 'white' : 'black';
+  const lobeR = r*0.46, lobeD = r*0.54;
+  let s = '';
+  for (let i = 0; i < 6; i++) {
+    const a = i*60*Math.PI/180;
+    s += svgEl('circle', {cx:cx+lobeD*Math.cos(a), cy:cy+lobeD*Math.sin(a), r:lobeR, fill});
+  }
+  s += svgEl('circle', {cx, cy, r:r*0.22, fill});
+  return s;
+}
+
+function svgWoodDriveTopDown(cx, cy, r, drive, filled) {
+  const fill = filled ? 'white' : 'black';
+  if (drive === 'PH') {
+    const lw = Math.max(3, r/3);
+    return svgEl('rect',{x:cx-lw/2,y:cy-r,width:lw,height:r*2,fill}) +
+           svgEl('rect',{x:cx-r,y:cy-lw/2,width:r*2,height:lw,fill});
+  }
+  if (drive === 'SQ') {
+    const s = r*0.72;
+    return svgEl('rect',{x:cx-s,y:cy-s,width:s*2,height:s*2,fill});
+  }
+  return svgTorxDrive(cx, cy, r, filled);
+}
+
+function svgWoodTopDown(cx, cy, r, head, drive, filled) {
+  let s = '';
+  if (filled) {
+    s += svgEl('circle',{cx,cy,r,fill:'black'});
+    if (head==='WAFER') {
+      s += svgEl('circle',{cx,cy,r:r*0.85,fill:'none',stroke:'white','stroke-width':2});
+      s += svgEl('circle',{cx,cy,r:r*0.68,fill:'none',stroke:'white','stroke-width':1});
+    } else if (head==='FLAT') {
+      s += svgEl('circle',{cx,cy,r:r*0.72,fill:'none',stroke:'white','stroke-width':2});
+      s += svgEl('circle',{cx,cy,r:r*0.50,fill:'none',stroke:'white','stroke-width':1});
+    } else if (head==='PAN') {
+      s += svgEl('circle',{cx,cy,r:r*0.78,fill:'none',stroke:'white','stroke-width':2});
+    } else {
+      s += svgEl('circle',{cx,cy,r:r*0.70,fill:'none',stroke:'white','stroke-width':1});
+    }
+    s += svgWoodDriveTopDown(cx, cy, r*0.38, drive, true);
+  } else {
+    s += svgEl('circle',{cx,cy,r,fill:'none',stroke:'black','stroke-width':3});
+    if (head==='WAFER') {
+      s += svgEl('circle',{cx,cy,r:r*0.85,fill:'none',stroke:'black','stroke-width':2});
+      s += svgEl('circle',{cx,cy,r:r*0.68,fill:'none',stroke:'black','stroke-width':1});
+    } else if (head==='FLAT') {
+      s += svgEl('circle',{cx,cy,r:r*0.72,fill:'none',stroke:'black','stroke-width':2});
+      s += svgEl('circle',{cx,cy,r:r*0.50,fill:'none',stroke:'black','stroke-width':1});
+    } else if (head==='PAN') {
+      s += svgEl('circle',{cx,cy,r:r*0.78,fill:'none',stroke:'black','stroke-width':2});
+    } else {
+      s += svgEl('circle',{cx,cy,r:r*0.70,fill:'none',stroke:'black','stroke-width':1});
+    }
+    s += svgWoodDriveTopDown(cx, cy, r*0.38, drive, false);
+  }
+  return s;
+}
+
+function svgWoodThreads(l, r, top, bot, filled) {
+  const sk = filled ? 'white' : 'black';
+  let s = '';
+  for (let y = top; y < bot-2; y += 12)
+    s += `<line x1="${l-4}" y1="${y}" x2="${r+4}" y2="${y+2}" stroke="${sk}" stroke-width="1"/>`;
+  return s;
+}
+
+function svgWoodSideProfile(x0, y0, w, h, head, filled) {
+  const cx=x0+w/2, sL=cx-w*0.14, sR=cx+w*0.14, sB=y0+h*0.86, tip=y0+h*0.99;
+  const sk='black', sw=3;
+  let s='';
+
+  if (head==='PAN') {
+    const hL=cx-w*0.36, hR=cx+w*0.36, hT=y0+h*0.05, hB=y0+h*0.27;
+    const cpX1=cx-w*0.1, cpX2=cx+w*0.1;
+    if (filled) {
+      s += `<path d="M${hL},${hB} C${hL},${hT+4} ${cpX1},${hT} ${cx},${hT} C${cpX2},${hT} ${hR},${hT+4} ${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z" fill="black"/>`;
+      s += svgWoodThreads(sL, sR, hB+6, sB, true);
+    } else {
+      s += `<path d="M${hL},${hB} C${hL},${hT+4} ${cpX1},${hT} ${cx},${hT} C${cpX2},${hT} ${hR},${hT+4} ${hR},${hB}" fill="none" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${hL}" y1="${hB}" x2="${hR}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += svgWoodThreads(sL, sR, hB+6, sB, false);
+      s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+    }
+    return s;
+  }
+
+  if (head==='PKT') {
+    const hL=cx-w*0.32, hR=cx+w*0.32, hT=y0+h*0.06, hB=y0+h*0.24;
+    if (filled) {
+      s += `<path d="M${hL},${hT} L${hR},${hT} L${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB} L${hL},${hB}Z" fill="black"/>`;
+      s += svgWoodThreads(sL, sR, hB+4, sB, true);
+    } else {
+      s += svgEl('rect',{x:hL,y:hT,width:hR-hL,height:hB-hT,fill:'none',stroke:sk,'stroke-width':sw});
+      s += `<line x1="${hL}" y1="${hB}" x2="${sL}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${hR}" y1="${hB}" x2="${sR}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += svgWoodThreads(sL, sR, hB+4, sB, false);
+      s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+    }
+    return s;
+  }
+
+  // FLAT and WAFER
+  if (filled) {
+    let path, threadTop;
+    if (head==='WAFER') {
+      const hL=cx-w*0.43, hR=cx+w*0.43, hT=y0+h*0.06, hB=y0+h*0.26;
+      const dY=(hB-hT)*0.6;
+      threadTop = hB+6;
+      path = `M${hL},${hB} C${hL},${hB-dY} ${hL+(cx-hL)*0.3},${hT} ${cx},${hT} C${cx+(hR-cx)*0.7},${hT} ${hR},${hB-dY} ${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z`;
+    } else {
+      const hL=cx-w*0.42, hR=cx+w*0.42, hT=y0+h*0.06, hB=y0+h*0.32;
+      threadTop = hB+6;
+      path = `M${hL},${hT} L${hR},${hT} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z`;
+    }
+    s += `<path d="${path}" fill="black"/>`;
+    s += svgWoodThreads(sL, sR, threadTop, sB, true);
+  } else {
+    if (head==='WAFER') {
+      const hL=cx-w*0.43, hR=cx+w*0.43, hT=y0+h*0.06, hB=y0+h*0.26;
+      const dY=(hB-hT)*0.6;
+      s += `<path d="M${hL},${hB} C${hL},${hB-dY} ${hL+(cx-hL)*0.3},${hT} ${cx},${hT} C${cx+(hR-cx)*0.7},${hT} ${hR},${hB-dY} ${hR},${hB}" fill="none" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${hL}" y1="${hB}" x2="${hR}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += svgWoodThreads(sL, sR, hB+6, sB, false);
+    } else {
+      const hL=cx-w*0.42, hR=cx+w*0.42, hT=y0+h*0.06, hB=y0+h*0.32;
+      s += `<line x1="${hL}" y1="${hT}" x2="${hR}" y2="${hT}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${hL}" y1="${hT}" x2="${sL}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${hR}" y1="${hT}" x2="${sR}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sL}" y1="${hB}" x2="${sL}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += `<line x1="${sR}" y1="${hB}" x2="${sR}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+      s += svgWoodThreads(sL, sR, hB+6, sB, false);
+    }
+    s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+    s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+  }
+  return s;
+}
+
+function svgHexWasherTopDown(cx, cy, r, filled) {
+  if (filled) {
+    return `<path d="${svgHexPath(cx,cy,r,-30)}" fill="black"/>` +
+           `<path d="${svgHexPath(cx,cy,r*0.72,-30)}" fill="none" stroke="white" stroke-width="1.5"/>`;
+  }
+  return `<path d="${svgHexPath(cx,cy,r,-30)}" fill="none" stroke="black" stroke-width="3"/>`;
+}
+
+function svgHexWasherSide(x0, y0, w, h, filled) {
+  const cx=x0+w/2, hW=w*0.22, wW=w*0.44;
+  const hT=y0+h*0.04, hB=y0+h*0.22, wB=y0+h*0.32;
+  const sL=cx-w*0.12, sR=cx+w*0.12, sB=y0+h*0.86, tip=y0+h*0.98;
+  const sk='black', sw=3;
+  let s='';
+  if (filled) {
+    s += `<path d="M${cx-hW},${hT} L${cx+hW},${hT} L${cx+hW},${hB} L${cx+wW},${hB} L${cx+wW},${wB} L${sR},${wB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${wB} L${cx-wW},${wB} L${cx-wW},${hB} L${cx-hW},${hB}Z" fill="black"/>`;
+    s += `<line x1="${cx-hW}" y1="${hT+2}" x2="${cx+hW}" y2="${hT+2}" stroke="white" stroke-width="1"/>`;
+    s += `<line x1="${cx-hW}" y1="${hB-2}" x2="${cx+hW}" y2="${hB-2}" stroke="white" stroke-width="1"/>`;
+    for (let y=wB+8; y<sB-2; y+=10)
+      s += `<line x1="${sL-3}" y1="${y}" x2="${sR+3}" y2="${y+1.5}" stroke="white" stroke-width="1"/>`;
+  } else {
+    s += svgEl('rect',{x:cx-hW,y:hT,width:hW*2,height:hB-hT,fill:'none',stroke:sk,'stroke-width':sw});
+    s += `<line x1="${cx-wW}" y1="${hB}" x2="${cx+wW}" y2="${hB}" stroke="${sk}" stroke-width="2"/>`;
+    s += `<line x1="${cx-wW}" y1="${hB}" x2="${cx-wW}" y2="${wB}" stroke="${sk}" stroke-width="2"/>`;
+    s += `<line x1="${cx+wW}" y1="${hB}" x2="${cx+wW}" y2="${wB}" stroke="${sk}" stroke-width="2"/>`;
+    s += `<line x1="${cx-wW}" y1="${wB}" x2="${cx+wW}" y2="${wB}" stroke="${sk}" stroke-width="2"/>`;
+    s += `<line x1="${sL}" y1="${wB}" x2="${sL}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+    s += `<line x1="${sR}" y1="${wB}" x2="${sR}" y2="${sB}" stroke="${sk}" stroke-width="${sw}"/>`;
+    for (let y=wB+8; y<sB-2; y+=10)
+      s += `<line x1="${sL-3}" y1="${y}" x2="${sR+3}" y2="${y+1.5}" stroke="${sk}" stroke-width="1"/>`;
+    s += `<line x1="${sL}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+    s += `<line x1="${sR}" y1="${sB}" x2="${cx}" y2="${tip}" stroke="${sk}" stroke-width="${sw}"/>`;
+  }
+  return s;
+}
+
+function svgWoodHalf(cfg, x0, y0, w, h) {
+  let s = '';
+  const isWood = cfg.cat === 'wood';
+  const barCount = isWood ? WOOD_GAUGE_BARS[cfg.gauge] : ST_GAUGE_BARS[cfg.gauge];
+  const barColor = isWood ? WOOD_BAR_COLOR : ST_BAR_COLOR;
+  const barH=14, barGap=4;
+  const barW = Math.floor((w-8-(barCount-1)*barGap)/barCount);
+  for (let i=0; i<barCount; i++)
+    s += svgEl('rect',{x:x0+4+i*(barW+barGap),y:y0+3,width:barW,height:barH,fill:barColor});
+
+  const ctop=y0+3+barH+4, tzW=Math.floor(w*0.52), tx=x0+8;
+  if (isWood) {
+    s += `<text x="${tx}" y="${ctop+48}" font-family="sans-serif" font-weight="bold" font-size="62" fill="black">${cfg.gauge} x ${cfg.length}</text>`;
+    s += `<text x="${tx}" y="${ctop+80}" font-family="sans-serif" font-weight="bold" font-size="32" fill="black">${WOOD_DRIVES_ABBR[cfg.drive]||cfg.drive} ${cfg.head}</text>`;
+    s += `<text x="${tx}" y="${ctop+104}" font-family="sans-serif" font-size="22" fill="black">Drive: ${WOOD_DRIVES[cfg.drive]||cfg.drive}</text>`;
+    s += `<text x="${tx}" y="${ctop+126}" font-family="sans-serif" font-size="22" fill="black">Head: ${WOOD_HEADS[cfg.head].full}</text>`;
+    s += `<text x="${tx}" y="${ctop+150}" font-family="sans-serif" font-weight="bold" font-size="22" fill="black">${cfg.material}</text>`;
+  } else {
+    s += `<text x="${tx}" y="${ctop+48}" font-family="sans-serif" font-weight="bold" font-size="62" fill="black">${cfg.gauge} x ${cfg.length}</text>`;
+    s += `<text x="${tx}" y="${ctop+80}" font-family="sans-serif" font-weight="bold" font-size="32" fill="black">HEX HWH</text>`;
+    s += `<text x="${tx}" y="${ctop+104}" font-family="sans-serif" font-size="22" fill="black">Drive: Socket</text>`;
+    s += `<text x="${tx}" y="${ctop+126}" font-family="sans-serif" font-size="22" fill="black">Head: Hex Washer</text>`;
+    s += `<text x="${tx}" y="${ctop+150}" font-family="sans-serif" font-weight="bold" font-size="22" fill="black">${cfg.material}</text>`;
+  }
+
+  s += `<line x1="${x0+tzW-4}" y1="${ctop+2}" x2="${x0+tzW-4}" y2="${y0+h-6}" stroke="black" stroke-width="1"/>`;
+
+  const dzStart=x0+tzW, dzW=w-tzW-4;
+  const tdZW=Math.floor(dzW*0.48), sideZW=dzW-tdZW;
+  const contentH=h-(ctop-y0)-4;
+  const tdCx=dzStart+tdZW/2, tdCy=ctop+contentH/2;
+  const tdR=Math.min(tdZW*0.42,contentH*0.42);
+  const filled=cfg.material!=='Stainless';
+
+  if (isWood) {
+    s += svgWoodTopDown(tdCx, tdCy, tdR, cfg.head, cfg.drive, filled);
+    s += svgWoodSideProfile(dzStart+tdZW, ctop+2, sideZW-4, contentH-4, cfg.head, filled);
+  } else {
+    s += svgHexWasherTopDown(tdCx, tdCy, tdR, filled);
+    s += svgHexWasherSide(dzStart+tdZW, ctop+2, sideZW-4, contentH-4, filled);
+  }
+  return s;
+}
+
 function buildSVG(cfg) {
   const w = LW, h = LH;
   // viewBox uses pixel coords; width/height set physical size in mm
@@ -1536,6 +2239,8 @@ function buildSVG(cfg) {
     svg += svgSingleHalf(cfg.bottomRight, halfW, halfH, halfW, h - halfH, {size:22,type:14,socket:0,head:0,mat:12});
     svg += `<line x1="${halfW}" y1="3" x2="${halfW}" y2="${h-3}" stroke="black" stroke-width="2" stroke-dasharray="6,3"/>`;
     svg += `<line x1="3" y1="${halfH}" x2="${w-3}" y2="${halfH}" stroke="black" stroke-width="2" stroke-dasharray="6,3"/>`;
+  } else if (cfg.cat === 'wood' || cfg.cat === 'tapping') {
+    svg += svgWoodHalf(cfg, 0, 0, w, h);
   } else {
     svg += svgSingleHalf(cfg, 0, 0, w, h);
   }
@@ -1733,6 +2438,45 @@ function init() {
   });
 
   buildAllLabels();
+
+  // Wood screw filter chips
+  const woodChipCfgs = [
+    {ids:'woodGaugeFilter', items:WOOD_GAUGES, type:'woodGauge', label:g=>g},
+    {ids:'woodHeadFilter', items:Object.entries(WOOD_HEADS), type:'woodHead', label:([k,v])=>`${k} — ${v.full}`, key:([k])=>k},
+    {ids:'woodDriveFilter', items:Object.entries(WOOD_DRIVES), type:'woodDrive', label:([k,v])=>k, key:([k])=>k},
+    {ids:'woodMatFilter', items:WOOD_MATS, type:'woodMat', label:m=>m},
+    {ids:'woodLenFilter', items:WOOD_LENGTHS, type:'woodLen', label:l=>l, extra:'length-chip'},
+  ];
+  woodChipCfgs.forEach(({ids,items,type,label,key,extra}) => {
+    const container = document.getElementById(ids);
+    items.forEach(item => {
+      const chip = document.createElement('div');
+      chip.className = 'chip active' + (extra ? ' ' + extra : '');
+      const k = key ? key(item) : item;
+      chip.dataset.val = k;
+      chip.textContent = label(item);
+      chip.onclick = () => toggleFilter(type, k, chip);
+      container.appendChild(chip);
+    });
+  });
+
+  // Self-tapping filter chips
+  const stChipCfgs = [
+    {ids:'stGaugeFilter', items:ST_GAUGES, type:'stGauge', label:g=>g},
+    {ids:'stMatFilter', items:ST_MATS, type:'stMat', label:m=>m},
+    {ids:'stLenFilter', items:ST_LENGTHS, type:'stLen', label:l=>l, extra:'length-chip'},
+  ];
+  stChipCfgs.forEach(({ids,items,type,label,extra}) => {
+    const container = document.getElementById(ids);
+    items.forEach(item => {
+      const chip = document.createElement('div');
+      chip.className = 'chip active' + (extra ? ' ' + extra : '');
+      chip.dataset.val = item;
+      chip.textContent = label(item);
+      chip.onclick = () => toggleFilter(type, item, chip);
+      container.appendChild(chip);
+    });
+  });
 
   // Load custom labels from localStorage
   const customLabels = JSON.parse(localStorage.getItem('customLabels') || '[]');
