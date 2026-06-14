@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-06-13
+
+### Added
+
+- **Wood screws** — new label category for #6/8/9/10/12 gauge, imperial lengths (3/4"–4")
+  - Head types: Flat (countersunk), Wafer, Pan, Pocket
+  - Drive types: Torx T15/T20/T25, Phillips, Robertson Square
+  - Brown identity bars (count = gauge rank: #6=1 bar … #12=5 bars)
+  - Unique side profiles per head: V-countersink (Flat), low bezier dome (Wafer), domed pan (Pan), flat rectangular (Pocket)
+  - Coarse thread lines extending beyond shank, sharp gimlet point
+- **Self-tapping screws** — Hex Washer Head category for #6/8/10/12 gauge, imperial lengths (1/2"–2")
+  - Blue identity bars, hex-on-washer-flange side profile, pointed tip
+- **Drive icons**: Torx 6-lobe star, Robertson square recess, Phillips cross (in addition to existing Hex socket)
+- **SVG export for all new types** — `svgWoodHalf`, `svgWoodTopDown`, `svgWoodSideProfile`, `svgHexWasherTopDown`, `svgHexWasherSide` added; `buildSVG` dispatches to wood/tapping paths
+- **Sidebar filter sections** — Wood and Self-Tap category chips; dedicated filter panels (gauge, head, drive, material, imperial length) shown/hidden per category toggle
+
+## [0.3.0] - 2026-04-17
+
+### Added
+
+- SVG export for metric screw labels — native vector output (no canvas rasterization)
+- `downloadSelectedSVG()` button in sidebar
+- SVG rendering mirrors canvas geometry exactly: circles, paths, lines, text elements
+- Physical output size: 40mm × 16mm
+- Supports all label layouts: Single, Dual, Triple, Quad
+- Intended workflow: select labels → Download SVGs → import into Fusion 360 / Bambu Studio / laser software
+
 ## [0.2.0] - 2026-02-12
 
 ### Added
