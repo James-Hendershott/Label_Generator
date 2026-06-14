@@ -219,6 +219,28 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
       <label>Length (in)</label>
       <div class="chip-group length-grid" id="woodLenFilter"></div>
     </div>
+    <div style="margin-top:0.6rem;">
+      <button onclick="toggleGaugeRef()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;cursor:pointer;padding:0;font-family:inherit;letter-spacing:0.03em;">&#x1F4CF; Gauge Size Reference &#9662;</button>
+      <div id="gaugeRef" style="display:none;margin-top:0.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:0.45rem 0.5rem;">
+        <table style="width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:0.67rem;">
+          <thead>
+            <tr style="color:var(--text-muted);">
+              <th style="text-align:left;padding:0.1rem 0.3rem;border-bottom:1px solid var(--border);font-weight:600;">Gauge</th>
+              <th style="text-align:right;padding:0.1rem 0.3rem;border-bottom:1px solid var(--border);font-weight:600;">Shank (in)</th>
+              <th style="text-align:right;padding:0.1rem 0.3rem;border-bottom:1px solid var(--border);font-weight:600;">Shank (mm)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:0.12rem 0.3rem;color:#A0522D;font-weight:700;">#6</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">0.138&quot;</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">3.5 mm</td></tr>
+            <tr><td style="padding:0.12rem 0.3rem;color:#A0522D;font-weight:700;">#8</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">0.164&quot;</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">4.2 mm</td></tr>
+            <tr><td style="padding:0.12rem 0.3rem;color:#A0522D;font-weight:700;">#9</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">0.177&quot;</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">4.5 mm</td></tr>
+            <tr><td style="padding:0.12rem 0.3rem;color:#A0522D;font-weight:700;">#10</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">0.190&quot;</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">4.8 mm</td></tr>
+            <tr><td style="padding:0.12rem 0.3rem;color:#A0522D;font-weight:700;">#12</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">0.216&quot;</td><td style="padding:0.12rem 0.3rem;text-align:right;color:var(--text);">5.5 mm</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:0.6rem;color:var(--text-muted);margin-top:0.35rem;line-height:1.5;">Nominal shank &Oslash; &mdash; formula: 0.060&quot; + N&times;0.013&quot;<br>Thread OD ~15&ndash;20% larger. Same scale for Self-Tap.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Self-Tapping Screw Filters -->
@@ -1616,6 +1638,11 @@ function updateSelectionUI() {
 // ═══════════════════════════════════════════════════════════════════════════
 // FILTER TOGGLE
 // ═══════════════════════════════════════════════════════════════════════════
+
+function toggleGaugeRef() {
+  const el = document.getElementById('gaugeRef');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 
 function toggleFilter(type, val, el) {
   const numVal = type==='len' ? parseInt(val) : val;

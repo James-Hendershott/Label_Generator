@@ -15,6 +15,7 @@
 - [ ] Quick Add support for wood screws and self-tapping screws (currently only metric)
 - [ ] SVG export for Dual/Triple/Quad wood and self-tapping label layouts
 - [ ] Color code reference page update to include wood screw gauge system
+- [x] Gauge size reference table in sidebar (nominal shank Ø in/mm per # gauge) — v0.4.1
 
 ## Bugs
 

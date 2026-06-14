@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-06-13
+
+### Added
+
+- **Gauge size reference table** in the Wood Screw sidebar filter panel — collapsible table showing nominal shank diameter (inches and mm) for #6/8/9/10/12; includes the sizing formula (D = 0.060 + N×0.013") and a note that the same scale applies to Self-Tap gauges
+
 ## [0.4.0] - 2026-06-13
 
 ### Added
