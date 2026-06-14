@@ -16,6 +16,7 @@
 - [ ] SVG export for Dual/Triple/Quad wood and self-tapping label layouts
 - [ ] Color code reference page update to include wood screw gauge system
 - [x] Gauge size reference table in sidebar (nominal shank Ø in/mm per # gauge) — v0.4.1
+- [x] Wood screw coating system (7 coatings with real colors, Indoor/Outdoor rating) — v0.4.2
 
 ## Bugs
 

@@ -212,8 +212,12 @@ body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text);
       <div class="chip-group" id="woodDriveFilter"></div>
     </div>
     <div class="filter-group">
-      <label>Material</label>
-      <div class="chip-group" id="woodMatFilter"></div>
+      <label>Coating</label>
+      <div class="chip-group" id="woodCoatFilter"></div>
+    </div>
+    <div class="filter-group">
+      <label>Rating</label>
+      <div class="chip-group" id="woodRatingFilter"></div>
     </div>
     <div class="filter-group">
       <label>Length (in)</label>
@@ -482,7 +486,16 @@ const WOOD_LENGTHS = ['3/4"','1"','1-1/4"','1-1/2"','1-3/4"','2"','2-1/2"','3"',
 const WOOD_HEADS = {FLAT:{full:'Flat Head'},WAFER:{full:'Wafer Head'},PAN:{full:'Pan Head'},PKT:{full:'Pocket Head'}};
 const WOOD_DRIVES = {TX15:'Torx T15',TX20:'Torx T20',TX25:'Torx T25',PH:'Phillips',SQ:'Robertson Square'};
 const WOOD_DRIVES_ABBR = {TX15:'T15',TX20:'T20',TX25:'T25',PH:'PH',SQ:'SQ'};
-const WOOD_MATS = ['Zinc','Stainless'];
+const WOOD_COATINGS = {
+  ZN:  {full:'Zinc',       hex:'#919AA4'},
+  SS:  {full:'Stainless',  hex:null},
+  GLD: {full:'Gold Zinc',  hex:'#C8A800'},
+  BRZ: {full:'Bronze',     hex:'#8C5E2A'},
+  ORG: {full:'Orange',     hex:'#D4571E'},
+  TAN: {full:'Coyote Tan', hex:'#B8946A'},
+  BLK: {full:'Black',      hex:'#1E1E1E'},
+};
+const WOOD_RATINGS = ['Indoor','Outdoor'];
 
 // SELF-TAPPING SCREWS
 const ST_GAUGES = ['#6','#8','#10','#12'];
@@ -504,7 +517,7 @@ const PER_PAGE = COLS * ROWS;
 let filters = { cat:new Set(['screw','nut','washer']), size:new Set(SIZES), head:new Set(Object.keys(HEADS)),
   drive:new Set(['PH','HX']), mat:new Set(MATS), len:new Set(ALL_LENGTHS),
   woodGauge:new Set(WOOD_GAUGES), woodHead:new Set(Object.keys(WOOD_HEADS)),
-  woodDrive:new Set(Object.keys(WOOD_DRIVES)), woodMat:new Set(WOOD_MATS), woodLen:new Set(WOOD_LENGTHS),
+  woodDrive:new Set(Object.keys(WOOD_DRIVES)), woodCoat:new Set(Object.keys(WOOD_COATINGS)), woodRating:new Set(WOOD_RATINGS), woodLen:new Set(WOOD_LENGTHS),
   stGauge:new Set(ST_GAUGES), stMat:new Set(ST_MATS), stLen:new Set(ST_LENGTHS) };
 let selectedLabels = new Map(); // key -> {config, qty}
 let allLabels = []; // generated label configs
@@ -872,9 +885,9 @@ function drawWoodDriveTopDown(ctx, cx, cy, r, drive, filled) {
   }
 }
 
-function drawWoodTopDown(ctx, cx, cy, r, head, drive, filled) {
-  if (filled) {
-    ctx.fillStyle = 'black';
+function drawWoodTopDown(ctx, cx, cy, r, head, drive, fillColor) {
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = 'white';
     if (head === 'WAFER') {
@@ -907,15 +920,15 @@ function drawWoodTopDown(ctx, cx, cy, r, head, drive, filled) {
   }
 }
 
-function drawWoodThreads(ctx, l, r, top, bot, filled) {
-  ctx.lineWidth = 1; ctx.strokeStyle = filled ? 'white' : 'black';
+function drawWoodThreads(ctx, l, r, top, bot, fillColor) {
+  ctx.lineWidth = 1; ctx.strokeStyle = fillColor ? 'white' : 'black';
   for (let y = top; y < bot - 2; y += 12) {
     ctx.beginPath(); ctx.moveTo(l - 4, y); ctx.lineTo(r + 4, y + 2); ctx.stroke();
   }
   ctx.lineWidth = 3;
 }
 
-function drawWoodSideProfile(ctx, x0, y0, w, h, head, filled) {
+function drawWoodSideProfile(ctx, x0, y0, w, h, head, fillColor) {
   const cx = x0 + w / 2;
   const sL = cx - w*0.14, sR = cx + w*0.14;
   const sB = y0 + h*0.86, tip = y0 + h*0.99;
@@ -923,14 +936,14 @@ function drawWoodSideProfile(ctx, x0, y0, w, h, head, filled) {
   if (head === 'PAN') {
     const hL = cx - w*0.36, hR = cx + w*0.36;
     const hT = y0 + h*0.05, hB = y0 + h*0.27;
-    if (filled) {
-      ctx.fillStyle = 'black'; ctx.beginPath();
+    if (fillColor) {
+      ctx.fillStyle = fillColor; ctx.beginPath();
       ctx.moveTo(hL, hB);
       ctx.bezierCurveTo(hL, hT+4, cx-w*0.1, hT, cx, hT);
       ctx.bezierCurveTo(cx+w*0.1, hT, hR, hT+4, hR, hB);
       ctx.lineTo(sR, hB); ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
       ctx.closePath(); ctx.fill();
-      drawWoodThreads(ctx, sL, sR, hB+6, sB, true);
+      drawWoodThreads(ctx, sL, sR, hB+6, sB, fillColor);
     } else {
       ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
       ctx.beginPath();
@@ -952,13 +965,13 @@ function drawWoodSideProfile(ctx, x0, y0, w, h, head, filled) {
   if (head === 'PKT') {
     const hL = cx - w*0.32, hR = cx + w*0.32;
     const hT = y0 + h*0.06, hB = y0 + h*0.24;
-    if (filled) {
-      ctx.fillStyle = 'black'; ctx.beginPath();
+    if (fillColor) {
+      ctx.fillStyle = fillColor; ctx.beginPath();
       ctx.moveTo(hL, hT); ctx.lineTo(hR, hT);
       ctx.lineTo(hR, hB); ctx.lineTo(sR, hB);
       ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
       ctx.lineTo(hL, hB); ctx.closePath(); ctx.fill();
-      drawWoodThreads(ctx, sL, sR, hB+4, sB, true);
+      drawWoodThreads(ctx, sL, sR, hB+4, sB, fillColor);
     } else {
       ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
       ctx.strokeRect(hL, hT, hR-hL, hB-hT);
@@ -975,8 +988,8 @@ function drawWoodSideProfile(ctx, x0, y0, w, h, head, filled) {
   }
 
   // FLAT and WAFER
-  if (filled) {
-    ctx.fillStyle = 'black'; ctx.beginPath();
+  if (fillColor) {
+    ctx.fillStyle = fillColor; ctx.beginPath();
     if (head === 'WAFER') {
       const hL = cx-w*0.43, hR = cx+w*0.43, hT = y0+h*0.06, hB = y0+h*0.26;
       ctx.moveTo(hL, hB);
@@ -984,13 +997,13 @@ function drawWoodSideProfile(ctx, x0, y0, w, h, head, filled) {
       ctx.bezierCurveTo(cx+(hR-cx)*0.7, hT, hR, hB-(hB-hT)*0.6, hR, hB);
       ctx.lineTo(sR, hB); ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
       ctx.closePath(); ctx.fill();
-      drawWoodThreads(ctx, sL, sR, y0+h*0.26+6, sB, true);
+      drawWoodThreads(ctx, sL, sR, y0+h*0.26+6, sB, fillColor);
     } else {
       const hL = cx-w*0.42, hR = cx+w*0.42, hT = y0+h*0.06, hB = y0+h*0.32;
       ctx.moveTo(hL, hT); ctx.lineTo(hR, hT);
       ctx.lineTo(sR, hB); ctx.lineTo(sR, sB); ctx.lineTo(cx, tip); ctx.lineTo(sL, sB); ctx.lineTo(sL, hB);
       ctx.closePath(); ctx.fill();
-      drawWoodThreads(ctx, sL, sR, y0+h*0.32+6, sB, true);
+      drawWoodThreads(ctx, sL, sR, y0+h*0.32+6, sB, fillColor);
     }
   } else {
     ctx.strokeStyle = 'black'; ctx.lineWidth = 3;
@@ -1048,10 +1061,16 @@ function drawWoodLabel(canvas, cfg) {
   const headText = 'Head: ' + WOOD_HEADS[cfg.head].full;
   ctx.font = '22px "DejaVu Sans",sans-serif';
   if (ctx.measureText(headText).width > tzW - tx - 8) ctx.font = '18px "DejaVu Sans",sans-serif';
-  ctx.fillText(headText, tx, ctop + 126);
+  ctx.fillText(headText, tx, ctop + 121);
 
-  ctx.font = 'bold 22px "DejaVu Sans",sans-serif';
-  ctx.fillText(cfg.material, tx, ctop + 150);
+  const coat = WOOD_COATINGS[cfg.coating] || {full: cfg.coating};
+  ctx.fillStyle = 'black';
+  ctx.font = 'bold 20px "DejaVu Sans",sans-serif';
+  ctx.fillText(coat.full, tx, ctop + 142);
+  ctx.font = '16px "DejaVu Sans",sans-serif';
+  ctx.fillStyle = cfg.rating === 'Outdoor' ? '#059669' : '#9CA3AF';
+  ctx.fillText(cfg.rating, tx, ctop + 160);
+  ctx.fillStyle = 'black';
 
   const divX = tzW - 4;
   ctx.strokeStyle = 'black'; ctx.lineWidth = 1;
@@ -1062,10 +1081,10 @@ function drawWoodLabel(canvas, cfg) {
   const contentH = LH - ctop - 4;
   const tdCx = dzStart + tdZW / 2, tdCy = ctop + contentH / 2;
   const tdR = Math.min(tdZW * 0.42, contentH * 0.42);
-  const filled = cfg.material !== 'Stainless';
+  const fillColor = (WOOD_COATINGS[cfg.coating] || {}).hex ?? null;
 
-  drawWoodTopDown(ctx, tdCx, tdCy, tdR, cfg.head, cfg.drive, filled);
-  drawWoodSideProfile(ctx, dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, cfg.head, filled);
+  drawWoodTopDown(ctx, tdCx, tdCy, tdR, cfg.head, cfg.drive, fillColor);
+  drawWoodSideProfile(ctx, dzStart + tdZW, ctop + 2, sideZW - 4, contentH - 4, cfg.head, fillColor);
 
   ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, LW - 2, LH - 2);
 }
@@ -1462,7 +1481,7 @@ function getLabelKey(cfg) {
   if (cfg.cat==='quad') return 'QUAD_' + getLabelKey(cfg.topLeft) + '__' + getLabelKey(cfg.topRight) + '__' + getLabelKey(cfg.bottomLeft) + '__' + getLabelKey(cfg.bottomRight);
   if (cfg.cat==='dual') return 'DUAL_' + getLabelKey(cfg.left) + '__' + getLabelKey(cfg.right);
   if (cfg.cat==='screw') return `${cfg.size}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.material}`;
-  if (cfg.cat==='wood') return `WD_${cfg.gauge}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.material}`;
+  if (cfg.cat==='wood') return `WD_${cfg.gauge}x${cfg.length}_${cfg.head}_${cfg.drive}_${cfg.coating}_${cfg.rating}`;
   if (cfg.cat==='tapping') return `ST_${cfg.gauge}x${cfg.length}_HWH_${cfg.material}`;
   return `${cfg.size}_${cfg.cat}_${cfg.material}`;
 }
@@ -1488,8 +1507,10 @@ function buildAllLabels() {
     for (const len of WOOD_LENGTHS) {
       for (const head of Object.keys(WOOD_HEADS)) {
         for (const drive of Object.keys(WOOD_DRIVES)) {
-          for (const mat of WOOD_MATS) {
-            allLabels.push({cat:'wood',gauge,length:len,head,drive,material:mat});
+          for (const coat of Object.keys(WOOD_COATINGS)) {
+            for (const rating of WOOD_RATINGS) {
+              allLabels.push({cat:'wood',gauge,length:len,head,drive,coating:coat,rating});
+            }
           }
         }
       }
@@ -1514,12 +1535,14 @@ function matchesFilters(cfg) {
     if (!filters.woodGauge.has(cfg.gauge)) return false;
     if (!filters.woodHead.has(cfg.head)) return false;
     if (!filters.woodDrive.has(cfg.drive)) return false;
-    if (!filters.woodMat.has(cfg.material)) return false;
+    if (!filters.woodCoat.has(cfg.coating)) return false;
+    if (!filters.woodRating.has(cfg.rating)) return false;
     if (!filters.woodLen.has(cfg.length)) return false;
     const q = document.getElementById('searchBox').value.toLowerCase().trim();
     if (q) {
       const s = getLabelKey(cfg).toLowerCase() + ' wood ' + cfg.gauge + ' ' + cfg.length + ' ' +
-        WOOD_HEADS[cfg.head].full.toLowerCase() + ' ' + WOOD_DRIVES[cfg.drive].toLowerCase() + ' ' + cfg.material.toLowerCase();
+        WOOD_HEADS[cfg.head].full.toLowerCase() + ' ' + WOOD_DRIVES[cfg.drive].toLowerCase() + ' ' +
+        (WOOD_COATINGS[cfg.coating]?.full||'').toLowerCase() + ' ' + cfg.rating.toLowerCase();
       for (const t of q.split(/\s+/)) { if (!s.includes(t)) return false; }
     }
     return true;
@@ -2038,10 +2061,10 @@ function svgWoodDriveTopDown(cx, cy, r, drive, filled) {
   return svgTorxDrive(cx, cy, r, filled);
 }
 
-function svgWoodTopDown(cx, cy, r, head, drive, filled) {
+function svgWoodTopDown(cx, cy, r, head, drive, fillColor) {
   let s = '';
-  if (filled) {
-    s += svgEl('circle',{cx,cy,r,fill:'black'});
+  if (fillColor) {
+    s += svgEl('circle',{cx,cy,r,fill:fillColor});
     if (head==='WAFER') {
       s += svgEl('circle',{cx,cy,r:r*0.85,fill:'none',stroke:'white','stroke-width':2});
       s += svgEl('circle',{cx,cy,r:r*0.68,fill:'none',stroke:'white','stroke-width':1});
@@ -2072,15 +2095,15 @@ function svgWoodTopDown(cx, cy, r, head, drive, filled) {
   return s;
 }
 
-function svgWoodThreads(l, r, top, bot, filled) {
-  const sk = filled ? 'white' : 'black';
+function svgWoodThreads(l, r, top, bot, fillColor) {
+  const sk = fillColor ? 'white' : 'black';
   let s = '';
   for (let y = top; y < bot-2; y += 12)
     s += `<line x1="${l-4}" y1="${y}" x2="${r+4}" y2="${y+2}" stroke="${sk}" stroke-width="1"/>`;
   return s;
 }
 
-function svgWoodSideProfile(x0, y0, w, h, head, filled) {
+function svgWoodSideProfile(x0, y0, w, h, head, fillColor) {
   const cx=x0+w/2, sL=cx-w*0.14, sR=cx+w*0.14, sB=y0+h*0.86, tip=y0+h*0.99;
   const sk='black', sw=3;
   let s='';
@@ -2088,9 +2111,9 @@ function svgWoodSideProfile(x0, y0, w, h, head, filled) {
   if (head==='PAN') {
     const hL=cx-w*0.36, hR=cx+w*0.36, hT=y0+h*0.05, hB=y0+h*0.27;
     const cpX1=cx-w*0.1, cpX2=cx+w*0.1;
-    if (filled) {
-      s += `<path d="M${hL},${hB} C${hL},${hT+4} ${cpX1},${hT} ${cx},${hT} C${cpX2},${hT} ${hR},${hT+4} ${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z" fill="black"/>`;
-      s += svgWoodThreads(sL, sR, hB+6, sB, true);
+    if (fillColor) {
+      s += `<path d="M${hL},${hB} C${hL},${hT+4} ${cpX1},${hT} ${cx},${hT} C${cpX2},${hT} ${hR},${hT+4} ${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z" fill="${fillColor}"/>`;
+      s += svgWoodThreads(sL, sR, hB+6, sB, fillColor);
     } else {
       s += `<path d="M${hL},${hB} C${hL},${hT+4} ${cpX1},${hT} ${cx},${hT} C${cpX2},${hT} ${hR},${hT+4} ${hR},${hB}" fill="none" stroke="${sk}" stroke-width="${sw}"/>`;
       s += `<line x1="${hL}" y1="${hB}" x2="${hR}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
@@ -2105,9 +2128,9 @@ function svgWoodSideProfile(x0, y0, w, h, head, filled) {
 
   if (head==='PKT') {
     const hL=cx-w*0.32, hR=cx+w*0.32, hT=y0+h*0.06, hB=y0+h*0.24;
-    if (filled) {
-      s += `<path d="M${hL},${hT} L${hR},${hT} L${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB} L${hL},${hB}Z" fill="black"/>`;
-      s += svgWoodThreads(sL, sR, hB+4, sB, true);
+    if (fillColor) {
+      s += `<path d="M${hL},${hT} L${hR},${hT} L${hR},${hB} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB} L${hL},${hB}Z" fill="${fillColor}"/>`;
+      s += svgWoodThreads(sL, sR, hB+4, sB, fillColor);
     } else {
       s += svgEl('rect',{x:hL,y:hT,width:hR-hL,height:hB-hT,fill:'none',stroke:sk,'stroke-width':sw});
       s += `<line x1="${hL}" y1="${hB}" x2="${sL}" y2="${hB}" stroke="${sk}" stroke-width="${sw}"/>`;
@@ -2122,7 +2145,7 @@ function svgWoodSideProfile(x0, y0, w, h, head, filled) {
   }
 
   // FLAT and WAFER
-  if (filled) {
+  if (fillColor) {
     let path, threadTop;
     if (head==='WAFER') {
       const hL=cx-w*0.43, hR=cx+w*0.43, hT=y0+h*0.06, hB=y0+h*0.26;
@@ -2134,8 +2157,8 @@ function svgWoodSideProfile(x0, y0, w, h, head, filled) {
       threadTop = hB+6;
       path = `M${hL},${hT} L${hR},${hT} L${sR},${hB} L${sR},${sB} L${cx},${tip} L${sL},${sB} L${sL},${hB}Z`;
     }
-    s += `<path d="${path}" fill="black"/>`;
-    s += svgWoodThreads(sL, sR, threadTop, sB, true);
+    s += `<path d="${path}" fill="${fillColor}"/>`;
+    s += svgWoodThreads(sL, sR, threadTop, sB, fillColor);
   } else {
     if (head==='WAFER') {
       const hL=cx-w*0.43, hR=cx+w*0.43, hT=y0+h*0.06, hB=y0+h*0.26;
@@ -2211,8 +2234,10 @@ function svgWoodHalf(cfg, x0, y0, w, h) {
     s += `<text x="${tx}" y="${ctop+48}" font-family="sans-serif" font-weight="bold" font-size="62" fill="black">${cfg.gauge} x ${cfg.length}</text>`;
     s += `<text x="${tx}" y="${ctop+80}" font-family="sans-serif" font-weight="bold" font-size="32" fill="black">${WOOD_DRIVES_ABBR[cfg.drive]||cfg.drive} ${cfg.head}</text>`;
     s += `<text x="${tx}" y="${ctop+104}" font-family="sans-serif" font-size="22" fill="black">Drive: ${WOOD_DRIVES[cfg.drive]||cfg.drive}</text>`;
-    s += `<text x="${tx}" y="${ctop+126}" font-family="sans-serif" font-size="22" fill="black">Head: ${WOOD_HEADS[cfg.head].full}</text>`;
-    s += `<text x="${tx}" y="${ctop+150}" font-family="sans-serif" font-weight="bold" font-size="22" fill="black">${cfg.material}</text>`;
+    s += `<text x="${tx}" y="${ctop+121}" font-family="sans-serif" font-size="22" fill="black">Head: ${WOOD_HEADS[cfg.head].full}</text>`;
+    const coat=WOOD_COATINGS[cfg.coating]||{full:cfg.coating};
+    s += `<text x="${tx}" y="${ctop+142}" font-family="sans-serif" font-weight="bold" font-size="20" fill="black">${coat.full}</text>`;
+    s += `<text x="${tx}" y="${ctop+160}" font-family="sans-serif" font-size="16" fill="${cfg.rating==='Outdoor'?'#059669':'#9CA3AF'}">${cfg.rating}</text>`;
   } else {
     s += `<text x="${tx}" y="${ctop+48}" font-family="sans-serif" font-weight="bold" font-size="62" fill="black">${cfg.gauge} x ${cfg.length}</text>`;
     s += `<text x="${tx}" y="${ctop+80}" font-family="sans-serif" font-weight="bold" font-size="32" fill="black">HEX HWH</text>`;
@@ -2228,14 +2253,14 @@ function svgWoodHalf(cfg, x0, y0, w, h) {
   const contentH=h-(ctop-y0)-4;
   const tdCx=dzStart+tdZW/2, tdCy=ctop+contentH/2;
   const tdR=Math.min(tdZW*0.42,contentH*0.42);
-  const filled=cfg.material!=='Stainless';
+  const fillColor=isWood ? ((WOOD_COATINGS[cfg.coating]||{}).hex??null) : (cfg.material!=='Stainless');
 
   if (isWood) {
-    s += svgWoodTopDown(tdCx, tdCy, tdR, cfg.head, cfg.drive, filled);
-    s += svgWoodSideProfile(dzStart+tdZW, ctop+2, sideZW-4, contentH-4, cfg.head, filled);
+    s += svgWoodTopDown(tdCx, tdCy, tdR, cfg.head, cfg.drive, fillColor);
+    s += svgWoodSideProfile(dzStart+tdZW, ctop+2, sideZW-4, contentH-4, cfg.head, fillColor);
   } else {
-    s += svgHexWasherTopDown(tdCx, tdCy, tdR, filled);
-    s += svgHexWasherSide(dzStart+tdZW, ctop+2, sideZW-4, contentH-4, filled);
+    s += svgHexWasherTopDown(tdCx, tdCy, tdR, fillColor);
+    s += svgHexWasherSide(dzStart+tdZW, ctop+2, sideZW-4, contentH-4, fillColor);
   }
   return s;
 }
@@ -2471,7 +2496,8 @@ function init() {
     {ids:'woodGaugeFilter', items:WOOD_GAUGES, type:'woodGauge', label:g=>g},
     {ids:'woodHeadFilter', items:Object.entries(WOOD_HEADS), type:'woodHead', label:([k,v])=>`${k} — ${v.full}`, key:([k])=>k},
     {ids:'woodDriveFilter', items:Object.entries(WOOD_DRIVES), type:'woodDrive', label:([k,v])=>k, key:([k])=>k},
-    {ids:'woodMatFilter', items:WOOD_MATS, type:'woodMat', label:m=>m},
+    {ids:'woodCoatFilter', items:Object.entries(WOOD_COATINGS), type:'woodCoat', label:([k,v])=>v.full, key:([k])=>k},
+    {ids:'woodRatingFilter', items:WOOD_RATINGS, type:'woodRating', label:r=>r},
     {ids:'woodLenFilter', items:WOOD_LENGTHS, type:'woodLen', label:l=>l, extra:'length-chip'},
   ];
   woodChipCfgs.forEach(({ids,items,type,label,key,extra}) => {

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-06-14
+
+### Added
+
+- **7 coating options for wood screws** — Zinc (#919AA4), Stainless (outline), Gold Zinc (#C8A800), Bronze (#8C5E2A), Orange (#D4571E), Coyote Tan (#B8946A), Black (#1E1E1E); replaces the previous 2-option (Zinc/Stainless) material field
+- **Indoor/Outdoor rating field** for wood screws — shown on the label in green (Outdoor) or gray (Indoor); filterable via new Rating chip group in the sidebar
+- **Actual coating color on label icons** — screw body (top-down and side profile) fills with the real coating hex color rather than a generic dark gray; thread lines remain white over filled bodies, Stainless stays outline-only
+
+### Changed
+
+- Wood screw label text: "Head" line shifted up 5px, coating name replaces material at 20px bold, rating added below at 16px
+- Wood screw label key format: now includes coating ID and rating (`WD_..._BRZ_Outdoor`)
+
 ## [0.4.1] - 2026-06-13
 
 ### Added
