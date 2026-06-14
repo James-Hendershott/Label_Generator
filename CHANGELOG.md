@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.3] - 2026-06-14
+
+### Added
+
+- **Slotted (SL) drive** — single-slot top-down icon added to canvas and SVG; available on all wood screw head types
+- **Oval Head (OVL)** — raised countersunk head: dome on top, V-taper below; canvas + SVG, top-down shows two countersunk rings, side profile shows dome-over-taper shape
+- **Round Head (RND)** — spherical dome, no taper; narrower and taller than Pan; canvas + SVG, top-down shows one wide dome ring, side profile shows full hemisphere shape
+
 ## [0.4.2] - 2026-06-14
 
 ### Added
